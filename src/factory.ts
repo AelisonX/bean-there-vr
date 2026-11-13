@@ -35,7 +35,7 @@ export class Supervisor {
  root=new T.Group();left=new T.Group();right=new T.Group();head=new T.Group();jaw:T.Mesh;
  reaction:'object'|'slap'|'punch'|null=null;reactionTime=0;
  knockedOut=false;koAge=0;koPosition=new T.Vector3();
- counterTarget:T.Vector3|undefined;counterAge=1;
+ counterTarget:T.Vector3|undefined;counterAge=1;previousMatrix=new T.Matrix4();previousZones:T.Sphere[]=[];
  mode:'idle'|'approach'|'angry'|'retreat'|'lose'|'ko'='idle'; age=0; timer=0;lastVisit=0;lastMistakes=0;lastPhase:Phase='ready'; voiceTimer=0;
  constructor(scene:T.Scene,private speak:(lose:boolean)=>void){
   this.root.name='supervisor';scene.add(this.root);this.root.position.set(-1.95,0,-.72);
@@ -49,18 +49,21 @@ export class Supervisor {
   for(const [arm,side] of [[this.left,-1],[this.right,1]] as const){arm.position.set(side*.35,1.24,0);this.root.add(arm);block(arm,shirt,[side*.04,-.15,0],[.15,.31,.16]);part(arm,sphere,skin,[side*.04,-.35,0],[.085,.1,.08]);}
   const clipboard=block(this.left,material('#815d3c'),[-.04,-.32,.14],[.26,.35,.035]);clipboard.rotation.x=-.2;block(clipboard,white,[0,0,.025],[.21,.28,.01]);block(clipboard,dark,[0,.16,.035],[.09,.03,.018]);for(let i=0;i<4;i++)block(clipboard,dark,[0,.07-i*.04,.035],[.14,.008,.005]);
  }
+ private zones(){this.root.updateWorldMatrix(true,true);const result:T.Sphere[]=[];for(const arm of [this.left,this.right])for(const y of [-.08,-.22,-.35])result.push(new T.Sphere(arm.localToWorld(new T.Vector3(arm===this.left?-.04:.04,y,0)),.12));return result;}
+ private capturePose(){this.root.updateWorldMatrix(true,true);this.previousMatrix.copy(this.root.matrixWorld);this.previousZones=this.zones();}
  hit(a:T.Vector3,b:T.Vector3,radius=.03){
-  if(this.knockedOut)return false;
-  this.root.updateWorldMatrix(true,false);const inverse=this.root.matrixWorld.clone().invert(),start=a.clone().applyMatrix4(inverse),end=b.clone().applyMatrix4(inverse);
-  return sweptEllipsoid(start,end,new T.Vector3(0,1,0),new T.Vector3(.38+radius,.5+radius,.27+radius))||sweptEllipsoid(start,end,new T.Vector3(0,1.52,0),new T.Vector3(.24+radius,.27+radius,.23+radius));
+  if(this.knockedOut)return false;const center=this.root.getWorldPosition(new T.Vector3()).add(new T.Vector3(0,1,0));if(new T.Line3(a,b).closestPointToPoint(center,true,new T.Vector3()).distanceTo(center)>1.8+radius)return false;this.root.updateWorldMatrix(true,true);
+  for(const matrix of [this.root.matrixWorld,this.previousMatrix]){const inverse=matrix.clone().invert(),start=a.clone().applyMatrix4(inverse),end=b.clone().applyMatrix4(inverse);
+   if(sweptEllipsoid(start,end,new T.Vector3(0,1,0),new T.Vector3(.4+radius,.52+radius,.3+radius))||sweptEllipsoid(start,end,new T.Vector3(0,1.52,0),new T.Vector3(.26+radius,.29+radius,.25+radius)))return true;}
+  const zones=this.zones();for(let i=0;i<zones.length;i++){const old=this.previousZones[i]?.center??zones[i].center;const start=a.clone().sub(old),end=b.clone().sub(zones[i].center);if(new T.Line3(start,end).closestPointToPoint(new T.Vector3(),true,new T.Vector3()).length()<zones[i].radius+radius)return true;}return false;
  }
  react(kind:'object'|'slap'|'punch'){if(this.knockedOut)return;this.reaction=kind;this.reactionTime=kind==='object'?1:.6;this.mode=kind==='object'?'approach':'angry';this.timer=0;}
  knockOut(){this.knockedOut=true;this.koAge=0;this.koPosition.copy(this.root.position);this.mode='ko';}
  counterAttack(target:T.Vector3){this.counterTarget=target.clone();this.counterAge=0;this.counterPose();}
- private counterPose(){if(!this.counterTarget||this.counterAge>.3){this.right.scale.y=1;return;}this.root.updateWorldMatrix(true,false);const local=this.root.worldToLocal(this.counterTarget.clone()).sub(this.right.position);this.right.quaternion.setFromUnitVectors(new T.Vector3(0,-1,0),local.clone().normalize());this.right.scale.y=1+Math.max(0,Math.min(3,local.length()/.35)-1)*(1-this.counterAge/.3);}
- reset(){this.counterTarget=undefined;this.counterAge=1;this.right.scale.y=1;this.knockedOut=false;this.koAge=0;this.reaction=null;this.reactionTime=0;this.mode='idle';this.age=this.timer=this.lastVisit=this.lastMistakes=this.voiceTimer=0;this.lastPhase='ready';this.root.position.set(-1.95,0,-.72);this.root.rotation.set(0,0,0);this.head.rotation.set(0,0,0);this.left.rotation.set(0,0,0);this.right.rotation.set(0,0,0);this.jaw.scale.y=.015;}
+ private counterPose(){if(!this.counterTarget||this.counterAge>.9){this.right.scale.y=1;return;}this.root.updateWorldMatrix(true,false);const local=this.root.worldToLocal(this.counterTarget.clone()).sub(this.right.position);this.right.quaternion.setFromUnitVectors(new T.Vector3(0,-1,0),local.clone().normalize());this.right.scale.y=1+Math.max(0,Math.min(3,local.length()/.35)-1)*Math.sin(Math.min(1,this.counterAge/.9)*Math.PI);}
+ reset(){this.counterTarget=undefined;this.counterAge=1;this.right.scale.y=1;this.knockedOut=false;this.koAge=0;this.reaction=null;this.reactionTime=0;this.mode='idle';this.age=this.timer=this.lastVisit=this.lastMistakes=this.voiceTimer=0;this.lastPhase='ready';this.root.position.set(-1.95,0,-.72);this.root.rotation.set(0,0,0);this.head.rotation.set(0,0,0);this.left.rotation.set(0,0,0);this.right.rotation.set(0,0,0);this.jaw.scale.y=.015;this.capturePose();}
  update(dt:number,phase:Phase,elapsed:number,mistakes:number){
-  if(phase==='paused'||phase==='ready'||phase==='complete')return;
+  if(phase==='paused'||phase==='ready'||phase==='complete')return;this.capturePose();
   if(this.knockedOut){this.koAge+=dt;const fall=T.MathUtils.smoothstep(this.koAge,0,.85);this.root.position.copy(this.koPosition);this.root.position.y=.23*fall;this.root.rotation.z=-Math.PI/2*fall;this.root.rotation.x=0;this.left.rotation.x=this.right.rotation.x=-1;return;}
   this.counterAge+=dt;this.reactionTime=Math.max(0,this.reactionTime-dt);this.age+=dt;this.timer+=dt;this.voiceTimer-=dt;
   if(phase==='failed'&&this.lastPhase!=='failed'){this.mode='lose';this.timer=0;this.speak(true);this.voiceTimer=4;}
