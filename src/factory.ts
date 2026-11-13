@@ -83,7 +83,7 @@ export class Supervisor {
   this.right.rotation.z=angry?-.95+wave*.5:-.1;this.right.rotation.x=angry?-.7+Math.cos(this.age*9)*.5:0;
   this.left.rotation.x=angry?-.8+wave*.2:-.4;this.left.rotation.z=angry?.35+wave*.12:.12;
   this.jaw.scale.y=angry?.025+Math.abs(wave)*.04:.015;
-  if(this.reactionTime>0){const amount=Math.min(this.reactionTime,1);if(this.reaction==='slap'){this.head.rotation.z=.55*amount;this.right.rotation.x=-1.8;}else if(this.reaction==='punch'){this.root.rotation.x=-.22*amount;this.head.rotation.x=-.3*amount;this.left.rotation.x=this.right.rotation.x=-1.5;}else{this.head.rotation.x=-.12*amount;this.right.rotation.z=-1.4;}}else this.head.rotation.x=0;
+  if(this.reactionTime>0){const amount=Math.min(this.reactionTime,1);if(this.reaction==='slap'){this.head.rotation.z=.55*amount;this.right.rotation.x=-1.8;}else if(this.reaction==='punch'){this.root.rotation.x=-.22*amount;this.head.rotation.x=-.3*amount;this.left.rotation.x=this.right.rotation.x=-1.5;}else{this.root.rotation.x=-.16*amount;this.head.rotation.x=-.35*amount;this.head.rotation.z=.22*amount;this.right.rotation.z=-1.4;this.left.rotation.x=-1.1;}}else this.head.rotation.x=0;
   if(angry&&this.voiceTimer<=0){this.speak(this.mode==='lose');this.voiceTimer=this.mode==='lose'?5:3;}
   this.counterPose();
  }

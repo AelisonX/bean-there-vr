@@ -25,12 +25,19 @@ export class Shift {
     return .065 + Math.min(this.rejected * .0015, .075);
   }
 }
-export function initialBatch() { return Array.from({length:40}, (_,i) => i<30&&(i % 5 === 2||i===29)); }
+export function initialBatch() { return Array.from({length:64}, (_,i) => i<30&&(i % 5 === 2||i===29)); }
 export const MISTAKE_LIMIT=10;
 export function initialPosition(bad:boolean,index:number){
  if(bad){const order=index===29?6:Math.floor(index/5);return order<3?{x:-.24+order*.23,z:-.49}:{x:-1.28-(order%2)*.08,z:-.52-(order-3)*.12};}
- if(index>=30)return {x:-1.15+(index-30)%5*.46,z:index<35?-1.0:-.65};
+ if(index>=30)return {x:-1.24+(index-30)%9*.29,z:-1.0+Math.floor((index-30)/9)*.145};
  return {x:-1.22+(index%10)*.25,z:-.92+Math.floor(index/10)*.14};
 }
 export const BIN = {x:.95,z:.3,half:.385,rim:.68};
 export function insideBin(x:number,z:number) { return Math.abs(x-BIN.x)<BIN.half && Math.abs(z-BIN.z)<BIN.half; }
+
+export function flow(elapsed:number,mode:'timed'|'endless',coop:boolean,speed:number){
+ const late=mode==='endless'?Math.min(1,Math.max(0,elapsed-120)/180):0;
+ const team=coop?1.5:1;
+ return {beltFactor:team*.85,interval:(1.25-.5*late)/team,
+ badChance:(coop?.30:.24)+.20*late,greenInterval:Math.max(.13,.42/(1+speed*3))/team};
+}
