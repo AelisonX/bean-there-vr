@@ -8,7 +8,7 @@ export class Shift {
   markFired(){if(this.phase==='running')this.fired=true;}
   knockDown(){if(this.phase==='running'){this.endReason='supervisor';this.phase='failed';}}
   toggle() { if (this.phase === 'running') this.phase = 'paused'; else if (this.phase === 'paused') this.phase = 'running'; }
-  tick(dt: number) { if (this.phase === 'running') { this.elapsed += dt; if(!this.fired&&this.mode === 'timed' && this.elapsed >= 90) this.phase = 'complete'; } }
+  tick(dt: number) { if (this.phase === 'running') { this.elapsed += dt; if(!this.fired&&this.mode === 'timed' && this.elapsed >= 180) this.phase = 'complete'; } }
   resolve(bad: boolean, bin: boolean) {
     if (this.phase !== 'running') return;
     if (bad && bin) { if(!this.fired)this.score += 20; this.rejected++; }
@@ -20,10 +20,10 @@ export class Shift {
   get speed() {
     if(this.mode === 'endless') {
       // Deliberate five-minute pressure curve; human survival time needs playtesting.
-      const progress=Math.min(this.elapsed/300,1);
-      return Math.min(.65,.065+.48*progress**1.35+Math.min(this.rejected*.0015,.06));
+      const progress=this.elapsed/300;const overtime=Math.max(0,this.elapsed-360)/60;
+      return Math.min(2.4,.065+.48*progress**1.6+.12*overtime**1.7+Math.min(this.rejected*.0025,.12));
     }
-    return .065 + Math.min(this.rejected * .0015, .075);
+    return .065+.045*(Math.min(this.elapsed/180,1))**1.5+Math.min(this.rejected*.0025,.105);
   }
 }
 export function initialBatch() { return Array.from({length:64}, (_,i) => i<30&&(i % 5 === 2||i===29)); }
@@ -37,8 +37,8 @@ export const BIN = {x:.95,z:.3,half:.385,rim:.68};
 export function insideBin(x:number,z:number) { return Math.abs(x-BIN.x)<BIN.half && Math.abs(z-BIN.z)<BIN.half; }
 
 export function flow(elapsed:number,mode:'timed'|'endless',coop:boolean,speed:number){
- const late=mode==='endless'?Math.min(1,Math.max(0,elapsed-120)/180):0;
+ const late=mode==='endless'?Math.min(1,elapsed/360):Math.min(1,elapsed/180);const overtime=mode==='endless'?Math.min(1,Math.max(0,elapsed-360)/240):0;
  const team=coop?1.5:1;
- return {beltFactor:team*.85,interval:(1.25-.5*late)/team,
- badChance:(coop?.30:.24)+.20*late,greenInterval:Math.max(.13,.42/(1+speed*3))/team};
+ return {beltFactor:team*.935,interval:Math.max(.3,(mode==='endless'?.95-.45*late-.2*overtime:.95-.25*late))/team,
+ badChance:Math.min(.88,(coop?.40:.32)+(mode==='endless'?.38:.12)*late+.10*overtime),greenInterval:Math.max(.13,.42/(1+speed*3))/team};
 }

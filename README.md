@@ -1,8 +1,8 @@
-# Bean There VR v0.9
+# Bean There VR v0.10
 
 A very normal job. Now in three dimensions.
 
-Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.8 is live. v0.9 mouse improvements are prepared locally, pending approval to publish. Co-op connection setup will be discussed after the single-player headset test.
+Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.10 combines the approved mouse improvements, faster difficulty curve and revised supervisor fight. Co-op connection setup will be discussed after the single-player headset test.
 
 ## Run
 
@@ -13,7 +13,7 @@ npm run dev
 
 Node 22.12+ (tested on 24). Open Vite's printed localhost address. Quest: open the published HTTPS site in Meta Quest Browser and select Enter VR.
 
-Main menu chooses a 90-second shift or endless mode; normal mode fails at 20 sorting mistakes and endless at 40. Fired practice is separate: scoring freezes and play can continue beyond the timer/mistake limit until the supervisor knocks you down or you restart. Options: sound, bin assist, workstation height. P / Escape pauses, R restarts, and VR A / X opens/resumes the pause menu. Hidden tabs and VR session exit pause. No artificial locomotion.
+Main menu chooses a three-minute shift or endless mode; normal mode fails at 20 sorting mistakes and endless at 40. Fired practice is separate: scoring freezes and play can continue beyond the timer/mistake limit until the supervisor knocks you down or you restart. Options: sound, bin assist, workstation height. P / Escape pauses, R restarts, and VR A / X opens/resumes the pause menu. Hidden tabs and VR session exit pause. No artificial locomotion.
 
 ## Controls
 
@@ -68,9 +68,9 @@ Assist now provides up to 2 m/s² of horizontal guidance only for descending ite
 
 ## Supervisor combat
 
-The v0.4 instant-firing rule is replaced by a small combat loop. Repeated hits register distinct reactions and an on-screen combo. Hits must separate/re-enter rather than remaining in contact. A combo window lasts 1.6 seconds; resting contacts and implausibly rapid repeated events do not count.
+The v0.4 instant-firing rule is replaced by a small combat loop. Repeated hits register distinct reactions and an on-screen combo. Moving contact can hit during any pose, with a half-second per-hand cooldown. A combo window lasts 1.6 seconds; resting contacts and implausibly rapid repeated events do not count.
 
-Open-hand hits slap; trigger/grip held punches. Slaps stagger and build combo damage, **but only a punch can KO the supervisor**. A punch at 4.5 m/s or a punch finishing enough accumulated damage knocks him down. Desktop normal punches can combo; Shift + right click gives a strong punch. KO persists until restart, stops retaliation, and lets sorting continue without points because the player remains fired. Punch audio adds an audible midrange crack and tonal thud; slap sound is retained.
+Open-hand hits slap; trigger/grip held punches. The firing hit causes no damage. After that, at least three damaging punches and 12 damage are needed for KO; weaker punches can require more. Slaps cannot deliver a KO. Damage persists between combo windows. A committed counter is immune to interruption by hits, including lethal hits: the knockout takes effect when that counter resolves. Blocking and dodging remain available. Shift + right click gives a stronger desktop punch.
 
 Once provoked by a hand strike he approaches, winds up, and counters after a longer grace period. Firing is immediate but is not an immediate game-over. Further hits can briefly delay him, with a cap to prevent endless slap stun. If his counter connects in range, one hit ends the shift as KNOCKED DOWN, without fabricating sorting mistakes. The avatar falls. Desktop view lowers/tilts; **VR camera remains headset-tracked while the avatar falls**. Throwing produce at him remains exactly one ordinary sorting mistake and does not start combat by itself. No injury visuals.
 
@@ -80,7 +80,7 @@ VR has a simple torso and tracked head proxy, with no arms/legs; tracked gloves 
 
 Mice remain rare (maximum two active), with anchored feet, limited kicking/scurrying and ambient/pickup/throw squeaks. Smaller procedural beans retain varied shapes/colors. The factory has lightweight windows, pipes, storage crates and an opposite reserved standing bay. Quiet synthesized machine noise and character sounds obey mute/pause/visibility.
 
-Timed belt speed starts at 0.065 m/s, adding 0.0015 per successful reject up to 0.14. Endless ramps to 0.545 m/s at five minutes plus a capped 0.06 success bonus. Five-minute average survival is a playtest target, not a verified human metric.
+Belt speeds receive a 10% overall boost from the prior version. Normal adds an accelerating time ramp across its three minutes and a capped success bonus. Endless keeps increasing beyond five minutes and adds a sharper accelerating ramp after six minutes, with a 2.4 m/s simulation cap before the solo/co-op belt multiplier. Reject probability and arrival frequency rise in both modes and faster in endless; green traffic and co-op difficulty scale alongside them.
 
 ## Verification
 
@@ -103,9 +103,9 @@ node tests/coop-browser.mjs
 
 Tests use Microsoft Edge. TEST_URL overrides the desktop smoke test's address. Other browser tests inject synthetic controller poses through Vite development modules; they do not emulate a headset.
 
-Forty-five game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
+Forty-nine game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
 
-**v0.8 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest the downward glove tilt, early-approach hits and repeat combos, inside-wall ricochets, own-body invisibility in both eyes, fired/no-points practice and dodging the slower punch. Quest 2 needs its own hardware test.
+**v0.10 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest the downward glove tilt, early-approach hits and repeat combos, inside-wall ricochets, own-body invisibility in both eyes, fired/no-points practice and dodging the slower punch. Quest 2 needs its own hardware test.
 
 ## Limits and publication
 
@@ -123,3 +123,6 @@ Normal shifts allow 20 mistakes, endless 40. Handling/pushing good beans is free
 
 ### v0.9 mouse behavior
 Untouched mice stay inside every belt edge, including the downstream end, despite conveyor motion or crowd contacts. The protection ends permanently after a player touches or picks up the mouse. Either co-op player can unlock it, and that state is synchronized. Belt mice choose nearby beans, seek them and curve around close targets while pushing them through planar contacts; they retarget periodically rather than wandering aimlessly. With no beans they wait on the moving belt. Floor escape behavior is retained after handling. Automated coverage includes all-edge confinement, seeking, VR pickup/unlocking, floor escape and remote touch synchronization.
+
+### v0.10 verification
+49 unit/relay tests, production build, live browser combat checks for harmless first hit and lethal damage during an uninterrupted counter, retained mouse behavior and two-player synchronization. Quest feel and balance require playtesting.

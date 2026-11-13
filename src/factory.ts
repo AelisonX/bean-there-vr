@@ -85,6 +85,7 @@ export class Supervisor {
   this.jaw.scale.y=angry?.025+Math.abs(wave)*.04:.015;
   if(this.reactionTime>0){const amount=Math.min(this.reactionTime,1);if(this.reaction==='slap'){this.head.rotation.z=.55*amount;this.right.rotation.x=-1.8;}else if(this.reaction==='punch'){this.root.rotation.x=-.22*amount;this.head.rotation.x=-.3*amount;this.left.rotation.x=this.right.rotation.x=-1.5;}else{this.root.rotation.x=-.16*amount;this.head.rotation.x=-.35*amount;this.head.rotation.z=.22*amount;this.right.rotation.z=-1.4;this.left.rotation.x=-1.1;}}else this.head.rotation.x=0;
   if(angry&&this.voiceTimer<=0){this.speak(this.mode==='lose');this.voiceTimer=this.mode==='lose'?5:3;}
+  if(this.counterTarget&&this.counterAge<.9){this.root.rotation.x=0;this.root.rotation.y=Math.atan2(this.counterTarget.x-this.root.position.x,this.counterTarget.z-this.root.position.z);}
   this.counterPose();
  }
 }
