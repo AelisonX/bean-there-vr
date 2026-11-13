@@ -3,9 +3,10 @@ export type Voice='mouse'|'grab'|'throw'|'grumble'|'lose'|'slap'|'punch'|'object
 export function playVoice(ctx:AudioContext,output:AudioNode,kind:Voice) {
  if(kind==='slap'||kind==='punch'||kind==='object'){
   const t=ctx.currentTime,duration=kind==='slap'?.13:.22;
+  if(kind==='punch'){const thud=ctx.createOscillator(),envelope=ctx.createGain();thud.type='triangle';thud.frequency.setValueAtTime(210,t);thud.frequency.exponentialRampToValueAtTime(65,t+.18);envelope.gain.setValueAtTime(.24,t);envelope.gain.exponentialRampToValueAtTime(.0001,t+.23);thud.connect(envelope).connect(output);thud.start(t);thud.stop(t+.24);thud.onended=()=>{thud.disconnect();envelope.disconnect();};}
   const buffer=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*duration),ctx.sampleRate),data=buffer.getChannelData(0);
   for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*Math.exp(-i/data.length*7);
-  const noise=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();noise.buffer=buffer;filter.type='lowpass';filter.frequency.value=kind==='slap'?3500:kind==='punch'?230:700;gain.gain.value=kind==='object'?.08:.15;noise.connect(filter).connect(gain).connect(output);noise.start(t);noise.onended=()=>{noise.disconnect();filter.disconnect();gain.disconnect();};return;
+  const noise=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();noise.buffer=buffer;filter.type='lowpass';filter.frequency.value=kind==='slap'?3500:kind==='punch'?1400:700;gain.gain.value=kind==='object'?.08:kind==='punch'?.22:.15;noise.connect(filter).connect(gain).connect(output);noise.start(t);noise.onended=()=>{noise.disconnect();filter.disconnect();gain.disconnect();};return;
  }
  const mouse=kind==='mouse'||kind==='grab'||kind==='throw';
  const count=kind==='lose'?8:kind==='grumble'?5:kind==='throw'?3:2;

@@ -34,7 +34,9 @@ export function buildFactory(scene:T.Scene){
 export class Supervisor {
  root=new T.Group();left=new T.Group();right=new T.Group();head=new T.Group();jaw:T.Mesh;
  reaction:'object'|'slap'|'punch'|null=null;reactionTime=0;
- mode:'idle'|'approach'|'angry'|'retreat'|'lose'='idle'; age=0; timer=0;lastVisit=0;lastMistakes=0;lastPhase:Phase='ready'; voiceTimer=0;
+ knockedOut=false;koAge=0;koPosition=new T.Vector3();
+ counterTarget:T.Vector3|undefined;counterAge=1;
+ mode:'idle'|'approach'|'angry'|'retreat'|'lose'|'ko'='idle'; age=0; timer=0;lastVisit=0;lastMistakes=0;lastPhase:Phase='ready'; voiceTimer=0;
  constructor(scene:T.Scene,private speak:(lose:boolean)=>void){
   this.root.name='supervisor';scene.add(this.root);this.root.position.set(-1.95,0,-.72);
   const skin=material('#dab38c'),vest=material('#e9902e'),shirt=material('#e5d9b5'),pants=material('#344c4b'),dark=material('#263a36'),white=material('#f0efda');
@@ -48,14 +50,19 @@ export class Supervisor {
   const clipboard=block(this.left,material('#815d3c'),[-.04,-.32,.14],[.26,.35,.035]);clipboard.rotation.x=-.2;block(clipboard,white,[0,0,.025],[.21,.28,.01]);block(clipboard,dark,[0,.16,.035],[.09,.03,.018]);for(let i=0;i<4;i++)block(clipboard,dark,[0,.07-i*.04,.035],[.14,.008,.005]);
  }
  hit(a:T.Vector3,b:T.Vector3,radius=.03){
+  if(this.knockedOut)return false;
   this.root.updateWorldMatrix(true,false);const inverse=this.root.matrixWorld.clone().invert(),start=a.clone().applyMatrix4(inverse),end=b.clone().applyMatrix4(inverse);
   return sweptEllipsoid(start,end,new T.Vector3(0,1,0),new T.Vector3(.38+radius,.5+radius,.27+radius))||sweptEllipsoid(start,end,new T.Vector3(0,1.52,0),new T.Vector3(.24+radius,.27+radius,.23+radius));
  }
- react(kind:'object'|'slap'|'punch'){this.reaction=kind;this.reactionTime=kind==='object'?1:2;this.mode=kind==='object'?'approach':'lose';this.timer=0;}
- reset(){this.reaction=null;this.reactionTime=0;this.mode='idle';this.age=this.timer=this.lastVisit=this.lastMistakes=this.voiceTimer=0;this.lastPhase='ready';this.root.position.set(-1.95,0,-.72);this.root.rotation.set(0,0,0);this.left.rotation.set(0,0,0);this.right.rotation.set(0,0,0);this.jaw.scale.y=.015;}
+ react(kind:'object'|'slap'|'punch'){if(this.knockedOut)return;this.reaction=kind;this.reactionTime=kind==='object'?1:.6;this.mode=kind==='object'?'approach':'angry';this.timer=0;}
+ knockOut(){this.knockedOut=true;this.koAge=0;this.koPosition.copy(this.root.position);this.mode='ko';}
+ counterAttack(target:T.Vector3){this.counterTarget=target.clone();this.counterAge=0;this.counterPose();}
+ private counterPose(){if(!this.counterTarget||this.counterAge>.3){this.right.scale.y=1;return;}this.root.updateWorldMatrix(true,false);const local=this.root.worldToLocal(this.counterTarget.clone()).sub(this.right.position);this.right.quaternion.setFromUnitVectors(new T.Vector3(0,-1,0),local.clone().normalize());this.right.scale.y=1+Math.max(0,Math.min(3,local.length()/.35)-1)*(1-this.counterAge/.3);}
+ reset(){this.counterTarget=undefined;this.counterAge=1;this.right.scale.y=1;this.knockedOut=false;this.koAge=0;this.reaction=null;this.reactionTime=0;this.mode='idle';this.age=this.timer=this.lastVisit=this.lastMistakes=this.voiceTimer=0;this.lastPhase='ready';this.root.position.set(-1.95,0,-.72);this.root.rotation.set(0,0,0);this.head.rotation.set(0,0,0);this.left.rotation.set(0,0,0);this.right.rotation.set(0,0,0);this.jaw.scale.y=.015;}
  update(dt:number,phase:Phase,elapsed:number,mistakes:number){
   if(phase==='paused'||phase==='ready'||phase==='complete')return;
-  this.reactionTime=Math.max(0,this.reactionTime-dt);this.age+=dt;this.timer+=dt;this.voiceTimer-=dt;
+  if(this.knockedOut){this.koAge+=dt;const fall=T.MathUtils.smoothstep(this.koAge,0,.85);this.root.position.copy(this.koPosition);this.root.position.y=.23*fall;this.root.rotation.z=-Math.PI/2*fall;this.root.rotation.x=0;this.left.rotation.x=this.right.rotation.x=-1;return;}
+  this.counterAge+=dt;this.reactionTime=Math.max(0,this.reactionTime-dt);this.age+=dt;this.timer+=dt;this.voiceTimer-=dt;
   if(phase==='failed'&&this.lastPhase!=='failed'){this.mode='lose';this.timer=0;this.speak(true);this.voiceTimer=4;}
   if(phase==='running'&&this.mode==='idle'&&(elapsed-this.lastVisit>35||mistakes>this.lastMistakes||elapsed>12&&this.lastVisit===0)){this.mode='approach';this.timer=0;this.lastVisit=elapsed;}
   this.lastMistakes=mistakes;this.lastPhase=phase;
@@ -74,5 +81,6 @@ export class Supervisor {
   this.jaw.scale.y=angry?.025+Math.abs(wave)*.04:.015;
   if(this.reactionTime>0){const amount=Math.min(this.reactionTime,1);if(this.reaction==='slap'){this.head.rotation.z=.55*amount;this.right.rotation.x=-1.8;}else if(this.reaction==='punch'){this.root.rotation.x=-.22*amount;this.head.rotation.x=-.3*amount;this.left.rotation.x=this.right.rotation.x=-1.5;}else{this.head.rotation.x=-.12*amount;this.right.rotation.z=-1.4;}}else this.head.rotation.x=0;
   if(angry&&this.voiceTimer<=0){this.speak(this.mode==='lose');this.voiceTimer=this.mode==='lose'?5:3;}
+  this.counterPose();
  }
 }

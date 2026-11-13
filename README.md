@@ -1,51 +1,49 @@
-# Bean There VR v0.4
+# Bean There VR v0.5
 
 A very normal job. Now in three dimensions.
 
-Three.js + TypeScript + Vite. Separate repository: https://github.com/AelisonX/bean-there-vr. Website: https://aelisonx.github.io/bean-there-vr/. Original game untouched. v0.4 is published with user approval. The live desktop browser playtest passed; physical Quest testing of this update remains pending.
+Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.4 is live; v0.5 is prepared locally and awaits approval to push/publish.
 
-## Run and choose a mode
+## Run
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Node 22.12+ required (tested on 24). Open Vite's printed localhost address. For Quest, open the published HTTPS site in Meta Quest Browser and select Enter VR.
+Node 22.12+ (tested on 24). Open Vite's printed localhost address. Quest: open the published HTTPS site in Meta Quest Browser and select Enter VR.
 
-The main menu selects a 90-second shift or endless mode. Both modes end at **10 mistakes**. Options control sound, gentle bin assist and workstation height. Options work on desktop and through the in-world VR menu. Height supports seated/standing setup; no artificial locomotion. Five-minute difficulty is a design target, not a measured average human survival time.
+Main menu chooses a 90-second shift or endless mode; both fail at ten sorting mistakes. Options: sound, bin assist, workstation height. P / Escape pauses, R restarts, and VR A / X opens/resumes the pause menu. Hidden tabs and VR session exit pause. No artificial locomotion.
 
-Desktop: click a bean, move over the bin and click to release. P / Escape pauses; R restarts the selected mode. Main menu pauses the game. Hidden tabs and VR session exit pause and require manual resume.
+## Controls
 
-## Quest interaction
+VR: reach near produce. Trigger holds one bean, grip holds a second independently in the same hand. Both buttons are needed for one mouse in an empty hand; release either to release the mouse. Release a bean's corresponding button to throw/drop it. Catch airborne items with the same proximity rules. Open gloves push items. Menu pointers only appear outside active play. Gloves are rolled 90 degrees outward from v0.4, preserving index/ray alignment and transformed palm contact.
 
-- Reach near produce. **Trigger holds one bean; grip holds a second bean independently in the same hand.** Release the corresponding button to release that bean. Either hand can do this.
-- **One mouse per hand requires both trigger and grip**, with no beans in that hand. The first button alone will not grab a mouse. Release either button to release it. Nearby mice take priority over accidental bean picks while the hand is empty.
-- Recent hand motion controls throws, capped at 6 m/s to suppress tracking spikes. Catch airborne items with the same proximity/button rules. Move open hands against produce to push it.
-- A / X opens/closes the pause menu. Aim the menu pointer and trigger to activate its buttons. The straight index finger is aligned to the same target-ray axis. **Pointer and cursor appear only before/after play or while paused.** Produce cannot be grabbed by ray.
-- Blue gloves and their contact point follow the same target-ray pose. The trigger curls the index; grip curls the other fingers. Physical alignment still needs headset confirmation.
+Desktop: **hold left mouse for the first item and right mouse for the second; release independently to throw/drop**. Move the single robot glove with the cursor. Flick while releasing for a free throw; stop moving before release for a drop. Aim at the supervisor and release for a targeted ballistic throw. An empty left click on him slaps, an empty right click punches. Shift + right click is a strong punch. Both mouse buttons are needed to hold a mouse. The context menu is suppressed on the canvas.
 
-Good green beans stay on the conveyor. Brown, yellow, tightly curled, short/broken beans and rare mice go into the white bin forward/right. Correct rejection +20, good downstream +2, wasted good −18, missed defect −10. Score floors at zero. Floor drops count as normal mistakes.
+Good green beans stay on the belt. Brown/yellow, tightly curled, short/broken beans and rare mice belong in the white bin forward/right. Correct reject +20; good downstream +2; wasted good −18; missed defect −10; score floors at zero. Floor drops count as mistakes. Initial batch is 20 good / 5 bad, with bad items only near the player or upstream.
 
-## v0.4 changes
+## v0.5 physics
 
-- Mouse feet use small hinged groups anchored inside the body. Motion is slower and reduced to 0.13 radians on the belt / 0.25 while held, preserving the existing scurrying and squeaks.
-- Supervisor starts at the upstream end and approaches around the belt's near-left corner. The opposite standing bay remains reserved for future co-op.
-- Thrown produce hitting his body/head causes a flinch, impact sound and **exactly one ordinary sorting mistake**. It does not fire the player or add a special penalty. The item is resolved once.
-- A deliberate moving-hand contact with the supervisor ends the shift as **FIRED**. An open hand slaps; trigger or grip held punches, even if carrying beans. These have different impact sounds, poses and end messages. Collision is swept to catch fast movement; a resting hand does not trigger firing. No injury visuals.
-- Starting batch stays 20 good / 5 bad. Three initial rejects are in the near working area; two are upstream with time to reach the player. No initial rejects start downstream or across the far side.
-- Ten-mistake limit and separate fired end reasons throughout UI/state.
-- Main menu, options and menu-only cursor/index alignment.
-- Reject bin widened from 0.67 to 0.82 m, still clear of the belt. Optional assist acts only on descending objects within 0.4 m above the rim and 0.1 m of its opening, at at most 0.22 m/s² sideways. No upward pull, teleport or automatic score; throws still need to cross the opening.
-- Two independent bean slots per hand and a both-button mouse rule.
+The reject bin now has collision walls, a floor and a rounded capsule rim matching its visual geometry. Bean contact samples follow the curved pod, scale and orientation. Impacts bounce, transfer spin and lose some energy through friction, permitting rim shots, rim rolls, bounce-ins and bounce-outs. Scoring happens once an item is sufficiently deep and slow inside the bin, not merely when it crosses the opening. Physics uses short substeps, not unrestricted full rigid bodies.
 
-## Retained
+Assist now provides up to 2 m/s² of horizontal guidance only for descending items close to the bin (within 0.6 m above / 0.08 m below the rim and a 0.2 m margin around the opening). It never lifts or teleports items and cannot guarantee a catch. The rim turns pale mint while enabled. Tests include a repeatable near-rim miss without assist that lands with assist.
 
-Procedural beans are 28% smaller than the first prototype, with varied shape/size/color. Mice remain rare (maximum two active), kick/scurry and squeak on ambient/pickup/throw events. Synthesized conveyor noise and cranky supervisor voices obey mute/pause/visibility. Supervisor grumbles, gestures and emotes at loss.
+## Supervisor combat
 
-Timed belt speed: 0.065 m/s plus 0.0015 per successful reject, capped at 0.14. Endless: a five-minute curve reaching 0.545 m/s at 300 seconds plus a success bonus capped at 0.06. Spawn and defect frequency rise gently. Endless has no time limit.
+The v0.4 instant-firing rule is replaced by a small combat loop. Repeated hits register distinct reactions and an on-screen combo. Hits must separate/re-enter rather than remaining in contact. A combo window lasts 1.6 seconds; resting contacts and implausibly rapid repeated events do not count.
 
-The factory has simple windows, pipes, shelves/crates and safety markings; repeated background boxes are instanced. No networking or second player yet.
+Open-hand hits slap; trigger/grip held punches. Slaps stagger and build combo damage, **but only a punch can KO the supervisor**. A punch at 4.5 m/s or a punch finishing enough accumulated damage knocks him down. Desktop normal punches can combo; Shift + right click gives a strong punch. KO persists until restart, stops retaliation, and lets the sorting shift continue. Punch audio adds an audible midrange crack and tonal thud; slap sound is retained.
+
+Once provoked by a hand strike he approaches, winds up, and counters after a short grace period. Further hits can briefly delay him, with a cap to prevent endless slap stun. If his counter connects in range, one hit ends the shift as KNOCKED DOWN, without fabricating sorting mistakes. The avatar falls. Desktop view lowers/tilts; **VR camera remains headset-tracked while the avatar falls**. Throwing produce at him remains exactly one ordinary sorting mistake and does not start combat by itself. No injury visuals.
+
+## Avatars and retained features
+
+VR has a simple torso and tracked head proxy, with no arms/legs; tracked gloves remain separate. Desktop has a robot torso/head proxy and one glove connected by a simple telescoping arm. Own head proxies are hidden from the local first-person camera. These are local representations for future co-op; there is no networking or second player yet.
+
+Mice remain rare (maximum two active), with anchored feet, limited kicking/scurrying and ambient/pickup/throw squeaks. Smaller procedural beans retain varied shapes/colors. The factory has lightweight windows, pipes, storage crates and an opposite reserved standing bay. Quiet synthesized machine noise and character sounds obey mute/pause/visibility.
+
+Timed belt speed starts at 0.065 m/s, adding 0.0015 per successful reject up to 0.14. Endless ramps to 0.545 m/s at five minutes plus a capped 0.06 success bonus. Five-minute average survival is a playtest target, not a verified human metric.
 
 ## Verification
 
@@ -58,21 +56,19 @@ node tests/vr-interactions.mjs
 node tests/characters.mjs
 node tests/menu.mjs
 node tests/supervisor-hits.mjs
+node tests/desktop-combat.mjs
 ```
 
-Browser checks use installed Microsoft Edge. TEST_URL overrides the desktop test's address. Other browser tests use Vite's development modules to inject synthetic controller poses; they do not emulate a headset.
+Tests use Microsoft Edge. TEST_URL overrides the desktop smoke test's address. Other browser tests inject synthetic controller poses through Vite development modules; they do not emulate a headset.
 
-Twenty unit tests cover scoring/failure/reset, safe opening positions, dual-slot/mouse exclusivity, bounded assist, swept hits, menu regions, index alignment, difficulty, supervisor state and throw/contact math. Browser checks cover mouse sorting, independent dual grabs/releases, mouse rules, throwing/catching/pushing, cursor visibility/alignment, actual VR menu activation, desktop options/resume, audio rendering, supervisor projectile mistakes and slap/punch firing.
+Unit coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
 
-**v0.4 physical Quest comfort, hand alignment and 72 FPS performance remain unverified.** The user has playtested earlier releases on Quest 3. Retest hands and menu first, then dual grabs, mice, throws/assist, safe start, mistake limit and supervisor interactions. Quest 2 compatibility/performance also needs physical testing.
+**v0.5 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest outward glove rotation, rim shots with assist on/off, combo/recoil timing and the tracked-view fall. Quest 2 needs its own hardware test.
 
 ## Limits and publication
 
-Lightweight interaction physics: no bean-to-bean collisions, solid bin-wall/environment rigid bodies or articulated finger contact. Gloves use a palm contact region; supervisor uses body/head collision volumes. No hand tracking. Downstream crate is visual and scored, not a growing physical pile.
+No bean-to-bean collisions, articulated finger collisions, hand tracking, or general factory rigid-body collisions. Bin and supervisor use dedicated collision volumes. Contact physics is an approximation, not Rapier. Downstream crate is visual/scored, not a physical growing pile. Avatar arm stretch and desktop aiming are development-friendly approximations.
 
-Shared geometry/materials, a 60-active-item cap, no dynamic shadows and pixel ratio capped at 1.5. Vite emits its standard approximately 500 KB chunk warning.
+Shared geometry/materials, 60 active items, instanced static dressing, no dynamic shadows and pixel ratio capped at 1.5. Vite emits its standard approximately 500 KB chunk warning. Source on main, built files on gh-pages root, updated after approval. Build with npm ci and npm run build; publish dist contents. Relative paths support /bean-there-vr/.
 
-Source on main, built static files on gh-pages root, published after approval. Run npm ci and npm run build, then publish dist contents. Relative paths support /bean-there-vr/. Never modify the original bean-there game for this prototype.
-
-Deferred: packing with receiving crate below belt end, uninterrupted swaps, left scale, 15 kg target, outgoing belt behind player and overflow failure; premium white export boxes and parallel top-layer alignment; networked co-op and more complex supervisor AI.
-
+Deferred: networked co-op; packing with uninterrupted crate swaps, left scale and 15 kg target; premium export alignment and more complex factory simulation.

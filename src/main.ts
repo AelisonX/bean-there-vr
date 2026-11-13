@@ -1,7 +1,10 @@
 import * as T from 'three';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
-import { Shift, initialBatch, insideBin, BIN, initialPosition, MISTAKE_LIMIT } from './game';
+import { Shift, initialBatch, BIN, initialPosition, MISTAKE_LIMIT } from './game';
 import './style.css';
+import {Combat,type Strike} from './combat';
+import {Avatars} from './avatars';
+import {buildPhysicalBin,collideBin,capturedInBin} from './bin-physics';
 import {HandLoad,type Button} from './holding';
 import {assistBin} from './collision';
 import {menuButtons,menuActionAt} from './menu';
@@ -10,11 +13,12 @@ import {buildFactory,Supervisor} from './factory';
 import {playVoice,type Voice} from './voices';
 import { Motion, segmentDistance } from './interaction';
 
-document.querySelector('#app')!.innerHTML = `<header><small>AELIS’ØN / FACTORY 01 · v0.4</small><h1>BEAN THERE <span style="color:#d8f58e">VR</span></h1><p>A very normal job. Now in three dimensions.</p></header><section class="panel"><div id="stats"></div><p id="message"></p><div id="menu"><div id="modes"><button id="start">Start shift</button><button id="endless">Endless shift</button><button id="options-button" class="secondary">Options</button></div><div id="options" hidden><button id="sound">Sound: on</button><button id="assist">Bin assist: on</button><br><label>Station height <input id="height" aria-label="Station height" type="range" min="-0.4" max="0.3" step="0.05" value="0"></label><br><button id="back">Back to modes</button></div><button id="resume" hidden>Resume shift</button></div><button id="pause" class="secondary">Pause</button><button id="menu-button" class="secondary">Main menu</button><div class="help">VR · Reach to pick. Trigger: one bean. Grip: another bean. Both together: one mouse, release either to let go. A / X: pause menu.<br>Open hands push. Throw produce into the white bin. Hitting the supervisor with your hand gets you fired.<br>DESKTOP · Click to grab/drop · P pauses · R restarts.</div></section>`;
+document.querySelector('#app')!.innerHTML = `<header><small>AELIS’ØN / FACTORY 01 · v0.5</small><h1>BEAN THERE <span style="color:#d8f58e">VR</span></h1><p>A very normal job. Now in three dimensions.</p></header><section class="panel"><div id="stats"></div><p id="message"></p><div id="menu"><div id="modes"><button id="start">Start shift</button><button id="endless">Endless shift</button><button id="options-button" class="secondary">Options</button></div><div id="options" hidden><button id="sound">Sound: on</button><button id="assist">Bin assist: on</button><br><label>Station height <input id="height" aria-label="Station height" type="range" min="-0.4" max="0.3" step="0.05" value="0"></label><br><button id="back">Back to modes</button></div><button id="resume" hidden>Resume shift</button></div><button id="pause" class="secondary">Pause</button><button id="menu-button" class="secondary">Main menu</button><div class="help">VR · Reach to pick. Trigger: one bean. Grip: another bean. Both together: one mouse, release either to let go. A / X: pause menu.<br>Open hands push. Throw produce into the white bin. Combos stagger the supervisor. Only punches can KO him. His counter-hit ends your shift.<br>DESKTOP · Hold left/right mouse for two grabs; release to throw. Empty left/right click on boss: slap/punch. Shift + right click: strong punch. P pauses · R restarts.</div></section>`;
 let menuPage:'main'|'options'='main',binAssist=true;
 const scene = new T.Scene(); scene.background = new T.Color('#80958c'); scene.fog = new T.Fog('#80958c', 7, 19);
 const camera = new T.PerspectiveCamera(52, innerWidth/innerHeight, .05, 40); camera.position.set(0,1.9,1.65); camera.lookAt(0,.85,-.55);
 const renderer = new T.WebGLRenderer({antialias:true}); renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,1.5)); renderer.xr.enabled = true; renderer.xr.setReferenceSpaceType('local-floor'); document.body.append(renderer.domElement); document.body.append(VRButton.createButton(renderer));
+const avatars=new Avatars(scene,camera);const combat=new Combat();
 scene.add(new T.HemisphereLight(0xe6ffe5,0x394740,2.5)); const light = new T.DirectionalLight(0xffefd2,2.5); light.position.set(2,6,3);scene.add(light);
 const station = new T.Group();scene.add(station);
 const mat = (color:T.ColorRepresentation) => new T.MeshStandardMaterial({color,roughness:.8});
@@ -29,14 +33,14 @@ for(const x of [-1.2,1.2])for(const z of [-.96,-.48])box(x,.43,z,.07,.86,.07,ste
 const slats:T.Mesh[]=[];for(let i=0;i<32;i++)slats.push(box(-1.4+i*2.8/32,.931,-.72,.018,.008,.61,mat('#456057')));
 for(const x of [-1.4,1.4]){const roller=new T.Mesh(new T.CylinderGeometry(.09,.09,.66,12),steel);roller.rotation.x=Math.PI/2;roller.position.set(x,.85,-.72);station.add(roller);}
 function bin(x:number,z:number,w:number,d:number,m:T.Material){box(x,.12,z,w,.12,d,m);box(x-w/2,.39,z,.05,.55,d,m);box(x+w/2,.39,z,.05,.55,d,m);box(x,.39,z-d/2,w,.55,.05,m);box(x,.39,z+d/2,w,.55,.05,m);}
-bin(BIN.x,BIN.z,BIN.half*2+.05,BIN.half*2+.05,white); bin(1.73,-.72,.48,.78,green);
+const binRimMaterial=buildPhysicalBin(station,white); bin(1.73,-.72,.48,.78,green);
 // Canvas signs remain readable inside the headset as well as on desktop.
 function sign(text:string,x:number,y:number,z:number,w:number,color='#e7f4bf') {const c=document.createElement('canvas');c.width=768;c.height=256;const ctx=c.getContext('2d')!;ctx.fillStyle='#173c35';ctx.fillRect(0,0,768,256);ctx.fillStyle=color;ctx.font='bold 52px sans-serif';ctx.textAlign='center';ctx.fillText(text,384,144);const mesh=new T.Mesh(new T.PlaneGeometry(w,w/3),new T.MeshBasicMaterial({map:new T.CanvasTexture(c)}));mesh.position.set(x,y,z);station.add(mesh);return mesh;}
 sign('REJECT ↓',BIN.x,.5,.74,.6);sign('KEEP →',1.72,.82,-1.15,.53);sign('QUALITY CONTROL / 01',0,3.1,-4.7,2.3);
 const hudCanvas=document.createElement('canvas');hudCanvas.width=1024;hudCanvas.height=640;const hudCtx=hudCanvas.getContext('2d')!;const hudTexture=new T.CanvasTexture(hudCanvas);const hud=new T.Mesh(new T.PlaneGeometry(1.6,1),new T.MeshBasicMaterial({map:hudTexture}));hud.position.set(0,2.12,-2.5);station.add(hud);
 type Bean = {mesh:T.Mesh,bad:boolean,critter:boolean,state:'belt'|'held'|'air'|'done',velocity:T.Vector3,spin:T.Vector3};
 const beans:Bean[]=[];const materials=[mat('#4e9b38'),mat('#63aa40'),mat('#398342'),mat('#ad792d'),mat('#a5a23b'),mat('#685538')];
-function geometry(curve:number,length:number) {const points=[];for(let i=0;i<=12;i++){const t=i/12;points.push(new T.Vector3((t-.5)*length,.006*Math.sin(t*9),Math.sin(t*Math.PI)*curve));}const path=new T.CatmullRomCurve3(points);const geo=new T.TubeGeometry(path,20,.014,6,false);const pos=geo.attributes.position;for(let i=0;i<pos.count;i++){const ring=Math.floor(i/7),t=ring/20;const center=path.getPointAt(t);const v=new T.Vector3().fromBufferAttribute(pos,i).sub(center).multiplyScalar(.15+.85*Math.pow(Math.sin(t*Math.PI),.3)).add(center);pos.setXYZ(i,v.x,v.y,v.z);}geo.computeVertexNormals();return geo;}
+function geometry(curve:number,length:number) {const points=[];for(let i=0;i<=12;i++){const t=i/12;points.push(new T.Vector3((t-.5)*length,.006*Math.sin(t*9),Math.sin(t*Math.PI)*curve));}const path=new T.CatmullRomCurve3(points);const geo=new T.TubeGeometry(path,20,.014,6,false);const pos=geo.attributes.position;for(let i=0;i<pos.count;i++){const ring=Math.floor(i/7),t=ring/20;const center=path.getPointAt(t);const v=new T.Vector3().fromBufferAttribute(pos,i).sub(center).multiplyScalar(.15+.85*Math.pow(Math.sin(t*Math.PI),.3)).add(center);pos.setXYZ(i,v.x,v.y,v.z);}geo.computeVertexNormals();geo.userData.collisionPoints=Array.from({length:5},(_,i)=>path.getPointAt(.05+i*.225));return geo;}
 const geometries=Array.from({length:8},(_,i)=>geometry(i>5?.1:.012+i*.003,.19+(i%3)*.025));
 const shift=new Shift();const supervisor=new Supervisor(scene,lose=>voice(lose?'lose':'grumble'));const voiceCounts:Record<string,number>={};let spawnTimer=0,spawnIndex=0,feedback='Ready for your voluntary factory shift?',muted=false,audio:AudioContext|undefined;
 function tone(good:boolean){if(muted)return;audio??=new AudioContext();void audio.resume();const osc=audio.createOscillator(),gain=audio.createGain();osc.frequency.value=good?660:150;gain.gain.setValueAtTime(.045,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.15);osc.connect(gain).connect(audio.destination);osc.start();osc.stop(audio.currentTime+.15);}
@@ -50,14 +54,25 @@ function spawn(bad:boolean,x=-1.3,z=-.72,allowCritter=false){
  mesh.position.set(x,.96,z);mesh.rotation.y=Math.random()*Math.PI;station.add(mesh);beans.push({mesh,bad,critter,state:'belt',velocity:new T.Vector3(),spin:new T.Vector3()});
 }
 function removeItem(b:Bean){station.remove(b.mesh);for(const child of b.mesh.children){if(child instanceof T.Mesh && child.geometry!==critterEar&&child.geometry!==cubeGeo)child.geometry.dispose();}}
-function releaseAll(){desktop=undefined;for(const c of controllers){const load=c.userData.load as HandLoad<Bean>;for(const b of load.clear())station.attach(b.mesh);c.userData.justReleased.clear();c.userData.motion.clear();c.userData.valid=false;}}
-function start(mode:'timed'|'endless'=shift.mode){releaseAll();for(const b of beans)removeItem(b);beans.length=0;shift.start(mode);supervisor.reset();ensureAudio();spawnIndex=0;spawnTimer=0;initialBatch().forEach((bad,i)=>{const p=initialPosition(bad,i);spawn(bad,p.x,p.z);});menuPage='main';feedback='Shift started. Brown, yellow or tightly curled? Bin it.';tone(true);}
+function releaseAll(){for(const b of desktopLoad.clear())station.attach(b.mesh);desktopMotion.clear();for(const c of controllers){const load=c.userData.load as HandLoad<Bean>;for(const b of load.clear())station.attach(b.mesh);c.userData.justReleased.clear();c.userData.motion.clear();c.userData.valid=false;}}
+function start(mode:'timed'|'endless'=shift.mode){releaseAll();for(const b of beans)removeItem(b);beans.length=0;shift.start(mode);supervisor.reset();combat.reset();avatars.reset();desktopSwing=undefined;desktopAnchor.set(0,1.08,-.3);avatars.glove.position.copy(desktopAnchor);lastBinSound=0;ensureAudio();spawnIndex=0;spawnTimer=0;initialBatch().forEach((bad,i)=>{const p=initialPosition(bad,i);spawn(bad,p.x,p.z);});menuPage='main';feedback='Shift started. Brown, yellow or tightly curled? Bin it.';tone(true);}
 function finish(b:Bean,bin:boolean){if(b.state==='done')return;shift.resolve(b.bad,bin);b.state='done';b.mesh.visible=false;feedback=bin?(b.bad?'Reject removed. +20':'That was good produce. −18'):(b.bad?'Defect escaped. −10':'Good bean collected. +2');if(bin||b.bad)tone(b.bad===bin);}
-const ray=new T.Raycaster(),pointer=new T.Vector2(),plane=new T.Plane(new T.Vector3(0,1,0),-1.08),target=new T.Vector3();let desktop:Bean|undefined;
-function castPointer(e:PointerEvent){pointer.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(pointer,camera);}
-function pick():Bean|undefined {const available=beans.filter(b=>b.state==='belt'||b.state==='air');const hits=ray.intersectObjects(available.map(b=>b.mesh));if(hits.length)return beans.find(b=>b.mesh===hits[0].object);let nearest:Bean|undefined,best=.065;for(const b of available){b.mesh.geometry.computeBoundingSphere();const center=b.mesh.geometry.boundingSphere!.center.clone();b.mesh.localToWorld(center);if(center.clone().sub(ray.ray.origin).dot(ray.ray.direction)<0)continue;const distance=ray.ray.distanceToPoint(center);if(distance<best){best=distance;nearest=b;}}return nearest;}
-renderer.domElement.addEventListener('pointermove',e=>{castPointer(e);if(desktop&&shift.phase==='running'&&ray.ray.intersectPlane(plane,target)){desktop.mesh.position.copy(station.worldToLocal(target.clone()));}});
-renderer.domElement.addEventListener('pointerdown',e=>{if(shift.phase!=='running'||renderer.xr.isPresenting)return;castPointer(e);if(desktop){desktop.state='air';desktop.velocity.set(0,0,0);desktop=undefined;}else{desktop=pick();if(desktop){desktop.state='held';desktop.mesh.position.y=1.08;if(desktop.critter)voice('grab');}}});
+const ray=new T.Raycaster(),pointer=new T.Vector2(),plane=new T.Plane(new T.Vector3(0,1,0),-1.08),target=new T.Vector3();const desktopLoad=new HandLoad<Bean>(),desktopMotion=new Motion();const desktopAnchor=new T.Vector3(0,1.08,-.3);let desktopSwing:{target:T.Vector3,time:number}|undefined;let lastBinSound=0;
+function castPointer(e:MouseEvent){pointer.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(pointer,camera);}
+function pick():Bean|undefined {const available=beans.filter(b=>b.state==='belt'||b.state==='air');const hits=ray.intersectObjects(available.map(b=>b.mesh));if(hits.length){let object:T.Object3D|null=hits[0].object;while(object){const b=available.find(b=>b.mesh===object);if(b)return b;object=object.parent;}}let nearest:Bean|undefined,best=.065;for(const b of available){b.mesh.geometry.computeBoundingSphere();const center=b.mesh.geometry.boundingSphere!.center.clone();b.mesh.localToWorld(center);if(center.clone().sub(ray.ray.origin).dot(ray.ray.direction)<0)continue;const distance=ray.ray.distanceToPoint(center);if(distance<best){best=distance;nearest=b;}}return nearest;}
+function hoverSupervisor(){if(supervisor.knockedOut)return;return ray.intersectObject(supervisor.root,true)[0];}
+function releaseDesktop(button:Button,throwing=true){const b=desktopLoad.release(button);if(!b)return;station.attach(b.mesh);b.state='air';b.velocity.copy(throwing?desktopMotion.velocity():new T.Vector3());
+ const hit=throwing?hoverSupervisor():undefined;if(hit){const destination=station.worldToLocal(hit.point.clone());if(b.mesh.position.distanceTo(destination)<.25)b.mesh.position.z+=.4;const flight=.35;b.velocity.copy(destination).sub(b.mesh.position).divideScalar(flight);b.velocity.y+=9.8*flight/2;}
+ b.velocity.clampLength(0,8);b.spin.set(b.velocity.z*2,b.velocity.x*2,-b.velocity.y*2);if(b.critter&&b.velocity.length()>.4)voice('throw');}
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+renderer.domElement.addEventListener('pointermove',e=>{if(renderer.xr.isPresenting)return;castPointer(e);if(ray.ray.intersectPlane(plane,target)){desktopAnchor.copy(target);desktopMotion.record(desktopAnchor,e.timeStamp/1000);}if(shift.phase==='running'&&!desktopSwing)avatars.glove.position.copy(desktopAnchor);});
+renderer.domElement.addEventListener('mousedown',e=>{if(shift.phase!=='running'||renderer.xr.isPresenting||e.button!==0&&e.button!==2)return;e.preventDefault();castPointer(e);const button:Button=e.button===0?'trigger':'grip',boss=hoverSupervisor();let selected=pick();if(boss&&selected&&boss.distance<selected.mesh.getWorldPosition(temp).distanceTo(ray.ray.origin))selected=undefined;
+ if(!selected&&boss&&!desktopLoad.slots[button]&&!desktopLoad.mouse){const kind:Strike=e.button===0?'slap':'punch';desktopSwing={target:boss.point.clone(),time:0};strikeSupervisor(kind,e.shiftKey?5:kind==='punch'?2.6:2);return;}
+ if(ray.ray.intersectPlane(plane,target)){desktopAnchor.copy(target);avatars.glove.position.copy(target);desktopMotion.clear();desktopMotion.record(desktopAnchor,e.timeStamp/1000);}
+ const bean=desktopLoad.press(button,mouse=>selected?.critter===mouse?selected:undefined);if(bean){bean.state='held';avatars.glove.attach(bean.mesh);bean.mesh.position.set(button==='trigger'?-.025:.025,0,-.04);if(bean.critter)voice('grab');}
+});
+window.addEventListener('mouseup',e=>{if(renderer.xr.isPresenting||e.button!==0&&e.button!==2)return;castPointer(e);desktopMotion.record(desktopAnchor,e.timeStamp/1000);releaseDesktop(e.button===0?'trigger':'grip',shift.phase==='running');});
+renderer.domElement.addEventListener('pointercancel',()=>{releaseDesktop('trigger',false);releaseDesktop('grip',false);});
 const controllers:T.XRGripSpace[]=[];const temp=new T.Vector3(),direction=new T.Vector3();
 function dropItem(c:T.XRGripSpace,b:Bean,throwing=true){
  station.attach(b.mesh);b.state='air';b.velocity.copy(throwing?c.userData.motion.velocity():new T.Vector3());
@@ -74,8 +89,8 @@ function closestBean(point:T.Vector3,mouse?:boolean){
 }
 for(let i=0;i<2;i++){
  const c=renderer.xr.getControllerGrip(i),input=renderer.xr.getController(i);scene.add(c,input);controllers.push(c);c.userData.input=input;
- c.userData.load=new HandLoad<Bean>();c.userData.motion=new Motion();c.userData.previous=new T.Vector3();c.userData.valid=false;c.userData.justReleased=new Map<Bean,number>();
- const glove=new T.Group();glove.position.copy(pointingGlovePosition(i?'right':'left'));input.add(glove);const contact=new T.Object3D();contact.position.set(0,-.018,-.02);glove.add(contact);c.userData.contact=contact;c.userData.glove=glove;
+ c.userData.load=new HandLoad<Bean>();c.userData.motion=new Motion();c.userData.previous=new T.Vector3();c.userData.valid=false;c.userData.justReleased=new Map<Bean,number>();c.userData.touchingBoss=false;c.userData.strikeAt=-100;
+ const glove=new T.Group();glove.rotation.z=i?-Math.PI/2:Math.PI/2;glove.position.copy(pointingGlovePosition(i?'right':'left')).applyAxisAngle(new T.Vector3(0,0,1),glove.rotation.z);input.add(glove);const contact=new T.Object3D();contact.position.set(0,-.018,-.02);glove.add(contact);c.userData.contact=contact;c.userData.glove=glove;
  const fabric=mat('#247ed1'),cuff=mat('#104681');box(0,0,0,.078,.034,.085,fabric,glove);box(0,0,.05,.085,.04,.025,cuff,glove);
  const fingers:T.Group[]=[];for(let f=0;f<4;f++){const finger=new T.Group();finger.position.set((f-1.5)*.019,0,-.034);box(0,0,-.026,.016,.025,.052,fabric,finger);glove.add(finger);fingers.push(finger);}
  const thumb=box(i?-.047:.047,-.008,-.01,.025,.03,.05,fabric,glove);c.userData.fingers=fingers;c.userData.index=i?0:3;
@@ -89,7 +104,7 @@ for(let i=0;i<2;i++){
   input.getWorldPosition(temp);direction.set(0,0,-1).applyQuaternion(input.getWorldQuaternion(new T.Quaternion()));ray.set(temp,direction);const hit=ray.intersectObject(hud)[0];if(hit?.uv)menuAction(menuActionAt(menuButtons(menuPage,shift.phase==='paused',!muted,binAssist),hit.uv.x,hit.uv.y));return;}
   press('trigger');});
  input.addEventListener('selectend',()=>release('trigger'));input.addEventListener('squeezestart',()=>press('grip'));input.addEventListener('squeezeend',()=>release('grip'));
- c.addEventListener('connected',event=>{const right=event.data.handedness==='right';glove.position.copy(pointingGlovePosition(right?'right':'left'));thumb.position.x=right?-.047:.047;c.userData.index=right?0:3;c.userData.source=event.data;c.userData.tracked=true;c.userData.motion.clear();c.userData.valid=false;});
+ c.addEventListener('connected',event=>{const right=event.data.handedness==='right';glove.rotation.z=right?-Math.PI/2:Math.PI/2;glove.position.copy(pointingGlovePosition(right?'right':'left')).applyAxisAngle(new T.Vector3(0,0,1),glove.rotation.z);thumb.position.x=right?-.047:.047;c.userData.index=right?0:3;c.userData.source=event.data;c.userData.tracked=true;c.userData.motion.clear();c.userData.valid=false;});
  c.addEventListener('disconnected',()=>{dropAll(c);c.userData.tracked=false;c.userData.valid=false;c.userData.motion.clear();cursor.visible=laser.visible=false;});
 }
 function updateHands(time:number){for(const c of controllers){
@@ -101,8 +116,8 @@ function updateHands(time:number){for(const c of controllers){
  const palm=(c.userData.contact as T.Object3D).getWorldPosition(new T.Vector3()),motion=c.userData.motion as Motion;motion.record(palm,time);const previous=c.userData.previous as T.Vector3;
  c.userData.fingers.forEach((finger:T.Group,index:number)=>finger.rotation.x=fingerCurl(shift.phase==='running'&&load.buttons.has(index===c.userData.index?'trigger':'grip')));
  if(shift.phase==='running'&&c.userData.valid){const velocity=motion.velocity();
-  if(velocity.length()>.8&&supervisor.hit(previous,palm,.045)){
-   const kind=load.buttons.size?'punch':'slap';supervisor.react(kind);voice(kind);shift.fire(kind);feedback=kind==='punch'?'FIRED — you punched the supervisor.':'FIRED — you slapped the supervisor.';
+  const hitBoss=supervisor.hit(previous,palm,.045);if(velocity.length()>.8&&hitBoss&&!c.userData.touchingBoss&&combat.time-c.userData.strikeAt>.18){
+   const kind=load.buttons.size?'punch':'slap';strikeSupervisor(kind,velocity.length());c.userData.strikeAt=combat.time;
   }else if(velocity.length()>.05&&load.items.length===0){for(const b of beans){if(b.state!=='belt'&&b.state!=='air')continue;
    if(performance.now()<(c.userData.justReleased.get(b)??0))continue;
    if(!b.mesh.geometry.boundingSphere)b.mesh.geometry.computeBoundingSphere();const center=b.mesh.localToWorld(b.mesh.geometry.boundingSphere!.center.clone());
@@ -110,8 +125,9 @@ function updateHands(time:number){for(const c of controllers){
   }}
  }
  for(const [b,until] of c.userData.justReleased)if(until<performance.now())c.userData.justReleased.delete(b);
- previous.copy(palm);c.userData.valid=true;
+ c.userData.touchingBoss=supervisor.hit(palm,palm,.045);previous.copy(palm);c.userData.valid=true;
 }}
+function strikeSupervisor(kind:Strike,speed:number){if(shift.phase!=='running'||!combat.strike(kind,speed))return;voice(kind);supervisor.react(kind);if(combat.ko){supervisor.knockOut();feedback='Supervisor KO! Back to the beans.';}else feedback='COMBO '+combat.combo+' — '+kind+'! Watch his counterattack.';}
 function setHeight(value:number){station.position.y=T.MathUtils.clamp(value,-.4,.3);plane.constant=-(1.08+station.position.y);(document.querySelector('#height') as HTMLInputElement).value=String(station.position.y);}
 function menuAction(action:string|undefined){switch(action){case 'timed':start('timed');break;case 'endless':start('endless');break;case 'resume':if(shift.phase==='paused')shift.toggle();break;case 'options':menuPage='options';break;case 'back':menuPage='main';break;case 'sound':muted=!muted;break;case 'assist':binAssist=!binAssist;break;case 'lower':setHeight(station.position.y-.05);break;case 'raise':setHeight(station.position.y+.05);break;}}
 document.querySelector('#endless')!.addEventListener('click',()=>start('endless'));
@@ -132,24 +148,34 @@ function ensureAudio(){audio??=new AudioContext();void audio.resume();if(machine
  const buffer=audio.createBuffer(1,audio.sampleRate*2,audio.sampleRate);const data=buffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*.2;
  const noise=audio.createBufferSource();noise.buffer=buffer;noise.loop=true;const filter=audio.createBiquadFilter();filter.type='lowpass';filter.frequency.value=380;noise.connect(filter).connect(machineGain);noise.start();
 }
-let last=0,lastHud='';renderer.setAnimationLoop(time=>{const dt=Math.min((time-last)/1000,.04);last=time;shift.tick(dt);updateHands(time/1000);updateCritters(dt);supervisor.update(dt,shift.phase,shift.elapsed,shift.mistakes);if(characterGain&&audio)characterGain.gain.setTargetAtTime(!muted&&!document.hidden&&shift.phase!=='paused'?1:0,audio.currentTime,.025);if(machineGain&&audio)machineGain.gain.setTargetAtTime(!muted&&shift.phase==='running'?.018:0,audio.currentTime,.1);
+let last=0,lastHud='';renderer.setAnimationLoop(time=>{const dt=Math.min((time-last)/1000,.04);last=time;if(desktopLoad.items.length)desktopMotion.record(desktopAnchor,time/1000);shift.tick(dt);updateHands(time/1000);updateCritters(dt);supervisor.update(dt,shift.phase,shift.elapsed,shift.mistakes);
+ const headPosition=renderer.xr.isPresenting?renderer.xr.getCamera().getWorldPosition(new T.Vector3()):avatars.robotHead.getWorldPosition(new T.Vector3());const headRotation=renderer.xr.isPresenting?renderer.xr.getCamera().getWorldQuaternion(new T.Quaternion()):camera.quaternion;
+ if(shift.phase==='running'){if(combat.fighting&&!combat.ko){supervisor.mode='angry';supervisor.timer=0;if(combat.windingUp){supervisor.right.rotation.x=-2.2;supervisor.right.rotation.z=-.3;}}
+  const reach=Math.hypot(headPosition.x-supervisor.root.position.x,headPosition.z-supervisor.root.position.z)<1.25;
+  if(combat.advance(dt,reach)){supervisor.counterAttack(headPosition);voice('punch');shift.knockDown();avatars.fall();feedback='KNOCKED DOWN — the supervisor got you.';}
+ }
+ if(desktopSwing){desktopSwing.time+=dt;avatars.glove.position.copy(desktopAnchor).lerp(desktopSwing.target,Math.sin(Math.min(1,desktopSwing.time/.28)*Math.PI));if(desktopSwing.time>.28)desktopSwing=undefined;}
+ avatars.update(dt,renderer.xr.isPresenting,headPosition,headRotation);binRimMaterial.color.set(binAssist?'#b0ded8':'#d5e4d0');
+ if(characterGain&&audio)characterGain.gain.setTargetAtTime(!muted&&!document.hidden&&shift.phase!=='paused'?1:0,audio.currentTime,.025);if(machineGain&&audio)machineGain.gain.setTargetAtTime(!muted&&shift.phase==='running'?.018:0,audio.currentTime,.1);
  if(shift.phase==='running'){spawnTimer+=dt;if(spawnTimer>1.5-Math.min(shift.elapsed/120,.65)){spawnTimer=0;if(beans.filter(b=>b.state!=='done').length<60)spawn(Math.random()<.2+Math.min(shift.elapsed/300,.2),-1.3,-.92+Math.random()*.4,true);}
  for(const s of slats){s.position.x+=shift.speed*dt;if(s.position.x>1.4)s.position.x-=2.8;}
- const steps=Math.ceil(dt/.008);for(let step=0;step<steps;step++){const h=dt/steps;
+ const steps=Math.ceil(dt/.004);for(let step=0;step<steps;step++){const h=dt/steps;
  for(const b of beans){if(shift.phase!=='running')break;const p=b.mesh.position;
  if(b.state==='belt'){
  p.x+=(shift.speed+b.velocity.x)*h;p.z+=b.velocity.z*h;b.velocity.multiplyScalar(Math.exp(-5*h));
  if(p.x>1.48)finish(b,false);else if(p.x< -1.4||p.z< -1.04||p.z>-.4)b.state='air';
  }else if(b.state==='air'){
- const previous=p.clone();if(binAssist)assistBin(p,b.velocity,h);b.velocity.y-=9.8*h;p.addScaledVector(b.velocity,h);b.mesh.rotation.x+=b.spin.x*h;b.mesh.rotation.z+=b.spin.z*h;
+ const previous=p.clone();if(binAssist)assistBin(p,b.velocity,h);b.velocity.y-=9.8*h;p.addScaledVector(b.velocity,h);b.mesh.rotation.x+=b.spin.x*h;b.mesh.rotation.y+=b.spin.y*h;b.mesh.rotation.z+=b.spin.z*h;
  if(b.velocity.length()>.3&&supervisor.hit(station.localToWorld(previous.clone()),station.localToWorld(p.clone()),.025)){supervisor.react('object');voice('object');finish(b,!b.bad);feedback='Supervisor hit. One normal sorting mistake.';continue;}
- if(previous.y>=BIN.rim&&p.y<BIN.rim){const fraction=(previous.y-BIN.rim)/(previous.y-p.y);const crossing=previous.clone().lerp(p,fraction);if(insideBin(crossing.x,crossing.z)){finish(b,true);continue;}}
+ const impacts=collideBin({position:p,quaternion:b.mesh.quaternion,scale:b.mesh.scale,velocity:b.velocity,spin:b.spin,points:b.mesh.geometry.userData.collisionPoints??[new T.Vector3()],radius:b.critter?.055:.014*Math.max(b.mesh.scale.y,b.mesh.scale.z)},h);
+ if(impacts&&shift.elapsed-lastBinSound>.08){voice('object');lastBinSound=shift.elapsed;}
+ if(capturedInBin(p,b.velocity)){finish(b,true);continue;}
  if(previous.y>=.96&&p.y<=.96&&p.x>-1.4&&p.x<1.4&&p.z> -1.04&&p.z<-.4){p.y=.96;b.velocity.y=0;b.state='belt';b.spin.set(0,0,0);}
  else if(p.y<.1){finish(b,!b.bad);}
  }
  }}
  for(let i=beans.length-1;i>=0;i--)if(beans[i].state==='done'){removeItem(beans[i]);beans.splice(i,1);}}
- const status=`${shift.phase.toUpperCase()} · ${shift.score} pts · ${shift.mistakes}/${MISTAKE_LIMIT} mistakes · ${shift.mode==='endless'?'ENDLESS '+Math.floor(shift.elapsed)+'s':Math.max(0,90-Math.floor(shift.elapsed))+'s'}`;const detail=shift.phase==='failed'?(shift.endReason==='slap'?'FIRED — you slapped the supervisor.':shift.endReason==='punch'?'FIRED — you punched the supervisor.':'Shift ended. Ten mistakes. Choose a mode to retry.'):shift.phase==='complete'?'Shift complete. You voluntarily survived factory work.':shift.phase==='paused'?'Paused. Resume from menu, P, or A / X.':feedback;
+ const status=`${shift.phase.toUpperCase()} · ${shift.score} pts · ${shift.mistakes}/${MISTAKE_LIMIT} mistakes · ${shift.mode==='endless'?'ENDLESS '+Math.floor(shift.elapsed)+'s':Math.max(0,90-Math.floor(shift.elapsed))+'s'}`;const detail=shift.phase==='failed'?(shift.endReason==='supervisor'?'KNOCKED DOWN — the supervisor got you.':'Shift ended. Ten mistakes. Choose a mode to retry.'):shift.phase==='complete'?'Shift complete. You voluntarily survived factory work.':shift.phase==='paused'?'Paused. Resume from menu, P, or A / X.':combat.windingUp?'COUNTER INCOMING! Finish the combo or move aside.':feedback;
  document.querySelector('#stats')!.textContent=status;document.querySelector('#message')!.textContent=detail;
  const active=shift.phase==='running';(document.querySelector('#menu') as HTMLElement).hidden=active;(document.querySelector('#modes') as HTMLElement).hidden=menuPage!=='main';(document.querySelector('#options') as HTMLElement).hidden=menuPage!=='options';(document.querySelector('#resume') as HTMLElement).hidden=shift.phase!=='paused';document.querySelector('#sound')!.textContent=muted?'Sound: off':'Sound: on';document.querySelector('#assist')!.textContent=binAssist?'Bin assist: on':'Bin assist: off';
  const stamp=status+detail+menuPage+muted+binAssist+station.position.y;if(stamp!==lastHud){lastHud=stamp;hudCtx.fillStyle='#173c35';hudCtx.fillRect(0,0,1024,640);hudCtx.fillStyle='#d8f58e';hudCtx.font='bold 40px sans-serif';hudCtx.fillText(active?'BEAN THERE / QUALITY CONTROL':menuPage==='options'?'OPTIONS':'BEAN THERE / MAIN MENU',32,65);hudCtx.font='28px sans-serif';hudCtx.fillText(status,32,125);hudCtx.fillStyle='#ffffff';hudCtx.font='24px sans-serif';hudCtx.fillText(detail,32,185);
@@ -158,6 +184,6 @@ let last=0,lastHud='';renderer.setAnimationLoop(time=>{const dt=Math.min((time-l
 });
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 // Read-only diagnostics used by local browser smoke tests.
-Object.defineProperty(window,'beanThere',{get:()=>({phase:shift.phase,score:shift.score,mistakes:shift.mistakes,beans:beans.map(b=>({bad:b.bad,state:b.state,x:b.mesh.position.x,y:b.mesh.position.y,z:b.mesh.position.z,screen:b.mesh.getWorldPosition(new T.Vector3()).project(camera).toArray()})),limit:MISTAKE_LIMIT,endReason:shift.endReason,menu:menuPage,assist:binAssist,voices:{...voiceCounts},supervisor:supervisor.mode,mode:shift.mode,speed:shift.speed,xr:renderer.xr.enabled})});
+Object.defineProperty(window,'beanThere',{get:()=>({phase:shift.phase,score:shift.score,mistakes:shift.mistakes,beans:beans.map(b=>({bad:b.bad,state:b.state,x:b.mesh.position.x,y:b.mesh.position.y,z:b.mesh.position.z,screen:b.mesh.getWorldPosition(new T.Vector3()).project(camera).toArray()})),limit:MISTAKE_LIMIT,endReason:shift.endReason,menu:menuPage,assist:binAssist,voices:{...voiceCounts},combat:{combo:combat.combo,fighting:combat.fighting,ko:combat.ko,windup:combat.windingUp},fall:avatars.fallTime,supervisor:supervisor.mode,mode:shift.mode,speed:shift.speed,xr:renderer.xr.enabled})});
 
-export { controllers, beans, station, shift, spawn, updateHands, updateCritters, supervisor, menuAction, hud };
+export { controllers, beans, station, shift, spawn, updateHands, updateCritters, supervisor, menuAction, hud, combat, avatars, strikeSupervisor, desktopLoad };

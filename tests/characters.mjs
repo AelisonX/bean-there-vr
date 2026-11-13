@@ -14,14 +14,14 @@ try{
   input.dispatchEvent({type:'selectstart'});input.dispatchEvent({type:'squeezestart'});const held=c.userData.load.mouse===mouse;
   c.userData.motion.clear();c.userData.motion.record(at,1);c.userData.motion.record(at.clone().add(new T.Vector3(0,.2,0)),1.05);c.userData.input.dispatchEvent({type:'squeezeend'});
   const thrown=mouse.state==='air'&&mouse.velocity.y>3;
-  const {playVoice}=await import('/src/voices.ts');const audible=[];
-  for(const kind of ['mouse','grab','throw','grumble','lose','slap','punch','object']){const ctx=new OfflineAudioContext(1,96000,48000);playVoice(ctx,ctx.destination,kind);const buffer=await ctx.startRendering();audible.push(buffer.getChannelData(0).some(v=>Math.abs(v)>.001));}
+  const {playVoice}=await import('/src/voices.ts');const audible=[];let punchPeak=0,punchRms=0;
+  for(const kind of ['mouse','grab','throw','grumble','lose','slap','punch','object']){const ctx=new OfflineAudioContext(1,96000,48000);playVoice(ctx,ctx.destination,kind);const buffer=await ctx.startRendering();const samples=buffer.getChannelData(0);audible.push(samples.some(v=>Math.abs(v)>.001));if(kind==='punch'){const active=samples.slice(0,12000);punchPeak=active.reduce((max,v)=>Math.max(max,Math.abs(v)),0);punchRms=Math.sqrt(active.reduce((sum,v)=>sum+v*v,0)/active.length);}}
   m.supervisor.update(.1,'failed',m.shift.elapsed,5);c.userData.tracked=false;
-  return {moving,kicking,held,thrown,voices:window.beanThere.voices,audible,supervisor:m.supervisor.mode,blue:c.userData.glove.children.find(o=>o.isMesh).material.color.getHexString()};
+  return {moving,kicking,held,thrown,voices:window.beanThere.voices,audible,punchPeak,punchRms,supervisor:m.supervisor.mode,blue:c.userData.glove.children.find(o=>o.isMesh).material.color.getHexString()};
  });
  for(const name of ['moving','kicking','held','thrown'])assert.ok(result[name],name);
  for(const kind of ['mouse','grab','throw','lose'])assert.ok(result.voices[kind]>0,kind);
- assert.ok(result.audible.every(Boolean));assert.equal(result.supervisor,'lose');assert.equal(result.blue,'247ed1');assert.deepEqual(errors,[]);
+ assert.ok(result.audible.every(Boolean));assert.ok(result.punchPeak>.12&&result.punchRms>.025,'punch has an audible crack/thud, not just a nonzero signal');assert.equal(result.supervisor,'lose');assert.equal(result.blue,'247ed1');assert.deepEqual(errors,[]);
  await page.screenshot({path:'../prototype-v03.png'});
  console.log('PASS: mice scurry/kick, emit ambient/grab/throw squeaks; all eight voices render non-silent audio; blue gloves; supervisor loss response.');
 }finally{await browser.close();}

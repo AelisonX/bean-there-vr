@@ -1,10 +1,10 @@
 export type Phase = 'ready' | 'running' | 'paused' | 'failed' | 'complete';
 export class Shift {
-  endReason: 'mistakes'|'slap'|'punch'|null = null;
+  endReason: 'mistakes'|'supervisor'|null = null;
   phase: Phase = 'ready'; score = 0; mistakes = 0; rejected = 0; collected = 0; elapsed = 0;
   mode: 'timed' | 'endless' = 'timed';
   start(mode: 'timed' | 'endless' = this.mode) { this.endReason=null;this.mode = mode; this.phase = 'running'; this.score = this.mistakes = this.rejected = this.collected = this.elapsed = 0; }
-  fire(kind:'slap'|'punch'){if(this.phase==='running'){this.endReason=kind;this.phase='failed';}}
+  knockDown(){if(this.phase==='running'){this.endReason='supervisor';this.phase='failed';}}
   toggle() { if (this.phase === 'running') this.phase = 'paused'; else if (this.phase === 'paused') this.phase = 'running'; }
   tick(dt: number) { if (this.phase === 'running') { this.elapsed += dt; if(this.mode === 'timed' && this.elapsed >= 90) this.phase = 'complete'; } }
   resolve(bad: boolean, bin: boolean) {
