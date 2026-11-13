@@ -2,7 +2,7 @@
 
 A very normal job. Now in three dimensions.
 
-Standalone Three.js + TypeScript + Vite project. Proposed new GitHub repository: **AelisonX/bean-there-vr**. No remote has been created, pushed, or deployed. The original game was inspected at commit `3e42b4db7d4d5cd0a5d9f876cd68c66f07e3b7cf` in a separate reference checkout and was not modified. No original source or assets were copied.
+Standalone Three.js + TypeScript + Vite project. Repository: **https://github.com/AelisonX/bean-there-vr**. Published with user approval at **https://aelisonx.github.io/bean-there-vr/**. Source is on main; the production build is on gh-pages. The original game was inspected at commit `3e42b4db7d4d5cd0a5d9f876cd68c66f07e3b7cf` in a separate reference checkout and was not modified. No original source or assets were copied.
 
 ## Run on PC
 
@@ -62,3 +62,4 @@ Packing: green receiving crate directly below the conveyor end; swap full crates
 Premium export: white polystyrene boxes, straight/slender quality standards, careful weight and parallel top-layer alignment. Future supervisor: short brown hair, orange high-vis vest, mask, clipboard. No packing, weighing, supervisor AI or multiplayer is implemented in this milestone.
 
 Known prototype limits: simple bin/belt collision without bean-to-bean physics; no velocity throwing/flicking, ambient factory sound loop, saved progress or controller models. Downstream collection is represented by a green crate and scoring rather than a growing physical pile. Mistake allowance and speed need human difficulty calibration.
+
