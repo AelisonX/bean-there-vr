@@ -12,7 +12,14 @@ export class Shift {
     else { this.score = Math.max(0, this.score - (bad ? 10 : 18)); this.mistakes++; }
     if (this.mistakes >= 5) this.phase = 'failed';
   }
-  get speed() { return .065 + Math.min(this.rejected * .0015, .075); }
+  get speed() {
+    if(this.mode === 'endless') {
+      // Deliberate five-minute pressure curve; human survival time needs playtesting.
+      const progress=Math.min(this.elapsed/300,1);
+      return Math.min(.65,.065+.48*progress**1.35+Math.min(this.rejected*.0015,.06));
+    }
+    return .065 + Math.min(this.rejected * .0015, .075);
+  }
 }
 export function initialBatch() { return Array.from({length:25}, (_,i) => i % 5 === 2); }
 export const BIN = {x:.9,z:.2,half:.31,rim:.68};
