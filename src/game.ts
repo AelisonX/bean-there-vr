@@ -25,11 +25,12 @@ export class Shift {
     return .065 + Math.min(this.rejected * .0015, .075);
   }
 }
-export function initialBatch() { return Array.from({length:30}, (_,i) => i % 5 === 2||i===29); }
+export function initialBatch() { return Array.from({length:40}, (_,i) => i<30&&(i % 5 === 2||i===29)); }
 export const MISTAKE_LIMIT=10;
 export function initialPosition(bad:boolean,index:number){
  if(bad){const order=index===29?6:Math.floor(index/5);return order<3?{x:-.24+order*.23,z:-.49}:{x:-1.28-(order%2)*.08,z:-.52-(order-3)*.12};}
- return {x:-1.22+(index%10)*.25,z:-.92+Math.floor(index/10)*.19};
+ if(index>=30)return {x:-1.15+(index-30)%5*.46,z:index<35?-1.0:-.65};
+ return {x:-1.22+(index%10)*.25,z:-.92+Math.floor(index/10)*.14};
 }
 export const BIN = {x:.95,z:.3,half:.385,rim:.68};
 export function insideBin(x:number,z:number) { return Math.abs(x-BIN.x)<BIN.half && Math.abs(z-BIN.z)<BIN.half; }

@@ -23,18 +23,19 @@ export function buildFactory(scene:T.Scene){
   block(group,silver,[x,h,-3.7],[1.4,.06,.65]);
   for(const dx of [-.37,.37]){block(group,teal,[x+dx,h+.2,-3.7],[.59,.34,.48]);for(let r=0;r<3;r++)block(group,cream,[x+dx,h+.14+r*.065,-3.45],[.46,.018,.015]);}
  }for(const dx of [-.7,.7])block(group,silver,[x+dx,1.1,-3.7],[.06,2.2,.65]);}
- const c=document.createElement('canvas');c.width=768;c.height=256;const ctx=c.getContext('2d')!;ctx.fillStyle='#193f38';ctx.fillRect(0,0,768,256);ctx.fillStyle='#dae7b3';ctx.font='bold 40px sans-serif';ctx.textAlign='center';ctx.fillText('STATION 02 / RESERVED',384,110);ctx.font='28px sans-serif';ctx.fillText('FUTURE CO-OP • KEEP BAY CLEAR',384,168);
+ const c=document.createElement('canvas');c.width=768;c.height=256;const ctx=c.getContext('2d')!;ctx.fillStyle='#193f38';ctx.fillRect(0,0,768,256);ctx.fillStyle='#dae7b3';ctx.font='bold 40px sans-serif';ctx.textAlign='center';ctx.fillText('STATION 02 / CO-OP',384,110);ctx.font='28px sans-serif';ctx.fillText('TWO SIDES. SAME VERY NORMAL JOB.',384,168);
  const sign=new T.Mesh(new T.PlaneGeometry(1.8,.6),new T.MeshBasicMaterial({map:new T.CanvasTexture(c)}));sign.position.set(0,1.2,-4.7);group.add(sign);
  // Static repeated boxes share a handful of instanced draws on Quest.
  const batches=new Map<T.Material,T.Mesh[]>();
  for(const child of [...group.children])if(child instanceof T.Mesh&&child.geometry===cube){const m=child.material as T.Material;const list=batches.get(m)??[];list.push(child);batches.set(m,list);}
  for(const [m,meshes] of batches){const batch=new T.InstancedMesh(cube,m,meshes.length);meshes.forEach((mesh,i)=>{mesh.updateMatrix();batch.setMatrixAt(i,mesh.matrix);group.remove(mesh);});batch.instanceMatrix.needsUpdate=true;batch.computeBoundingSphere();group.add(batch);}
- return group;
+ const opposite=group.clone(true);opposite.rotation.y=Math.PI;opposite.position.z=-1.44;opposite.name='factory-opposite';scene.add(opposite);return group;
 }
 export class Supervisor {
  root=new T.Group();left=new T.Group();right=new T.Group();head=new T.Group();jaw:T.Mesh;
  reaction:'object'|'slap'|'punch'|null=null;reactionTime=0;
  knockedOut=false;koAge=0;koPosition=new T.Vector3();
+ focusSeat=0;
  counterTarget:T.Vector3|undefined;counterAge=1;previousMatrix=new T.Matrix4();previousZones:T.Sphere[]=[];
  mode:'idle'|'approach'|'angry'|'retreat'|'lose'|'ko'='idle'; age=0; timer=0;lastVisit=0;lastMistakes=0;lastPhase:Phase='ready'; voiceTimer=0;
  constructor(scene:T.Scene,private speak:(lose:boolean)=>void){
@@ -71,14 +72,14 @@ export class Supervisor {
   this.lastMistakes=mistakes;this.lastPhase=phase;
   const visiting=this.mode==='approach'||this.mode==='angry'||this.mode==='lose';
   const roundEnd=(this.mode==='approach'&&this.timer<1.4)||(this.mode==='retreat'&&this.timer<1.4);
-  const targetX=visiting?(roundEnd?-1.85:-.9):-1.95,targetZ=visiting?.12:roundEnd?.12:-.72;
+  const targetX=visiting?(roundEnd?-1.85:-.9):-1.95,targetZ=visiting?(this.focusSeat===1?-1.56:.12):roundEnd?(this.focusSeat===1?-1.56:.12):-.72;
   this.root.position.x=T.MathUtils.damp(this.root.position.x,targetX,2,dt);this.root.position.z=T.MathUtils.damp(this.root.position.z,targetZ,2,dt);
   if(this.mode==='approach'&&this.timer>3){this.mode='angry';this.timer=0;}
   if(this.mode==='angry'&&this.timer>5){this.mode='retreat';this.timer=0;}
   if(this.mode==='retreat'&&this.timer>3){this.mode='idle';this.timer=0;}
   const angry=this.mode==='angry'||this.mode==='lose';const wave=angry?Math.sin(this.age*10):0;
   this.root.position.y=angry?Math.abs(Math.sin(this.age*6))*.025:visiting?Math.abs(Math.sin(this.age*8))*.015:0;
-  this.root.rotation.y=Math.atan2(-this.root.position.x,-this.root.position.z);this.root.rotation.x=0;this.head.rotation.z=angry?wave*.08:0;
+  this.root.rotation.y=Math.atan2(-this.root.position.x,(this.focusSeat===1?-1.44:0)-this.root.position.z);this.root.rotation.x=0;this.head.rotation.z=angry?wave*.08:0;
   this.right.rotation.z=angry?-.95+wave*.5:-.1;this.right.rotation.x=angry?-.7+Math.cos(this.age*9)*.5:0;
   this.left.rotation.x=angry?-.8+wave*.2:-.4;this.left.rotation.z=angry?.35+wave*.12:.12;
   this.jaw.scale.y=angry?.025+Math.abs(wave)*.04:.015;

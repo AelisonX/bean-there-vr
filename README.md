@@ -1,8 +1,8 @@
-# Bean There VR v0.6
+# Bean There VR v0.7
 
 A very normal job. Now in three dimensions.
 
-Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.6 is published with user approval. Deployment and the live desktop browser playtest passed; physical Quest testing of this update remains pending.
+Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.6 is live. v0.7 includes single-player and co-op in one build, prepared locally pending approval to push/publish. Co-op connection setup will be discussed after the single-player headset test.
 
 ## Run
 
@@ -21,9 +21,37 @@ VR: reach near produce. Trigger holds one bean, grip holds a second independentl
 
 Desktop: **hold left mouse for the first item and right mouse for the second; release independently to throw/drop**. Move the single robot glove with the cursor. Flick while releasing for a free throw; stop moving before release for a drop. Aim at the supervisor and release for a targeted ballistic throw. An empty left click on him slaps, an empty right click punches. Shift + right click is a strong punch. Both mouse buttons are needed to hold a mouse. The context menu is suppressed on the canvas. H or the top-right Hide/Show panel button hides/restores the desktop panel and header, clearing the supervisor approach area.
 
-Good green beans stay on the belt. Brown/yellow, tightly curled, short/broken beans and rare mice belong in the white bin forward/right. Correct reject +20; good downstream +2; wasted good −18; missed defect −10; score floors at zero. Floor drops count as mistakes. Initial batch is 23 good / 7 bad, with bad items only near the player or upstream.
+Good green beans stay on the belt. Brown/yellow, tightly curled, short/broken beans and rare mice belong in the white bin forward/right. Correct reject +20; good downstream +2; wasted good −18; missed defect −10; score floors at zero. Floor drops count as mistakes. Initial batch is 33 good / 7 bad, with bad items only near the player or upstream.
 
-## v0.6 changes
+## v0.7 / testing order
+
+**Single-player first. Co-op setup and headset pairing afterwards, on this same version.** No external server, account, tunnel, firewall rule or paid hosting has been created. Local loopback servers were used for automated tests only.
+
+- Extra good-bean stream every 0.9 seconds in solo; the prior mixed stream's interval/defect probability is unchanged. Initial batch grows to 40 while retaining seven bad beans. Good-only spawns leave reserve capacity for the mixed stream; at the active cap a good belt bean can recycle to keep bad arrivals flowing. No bonus/penalty is fabricated for that recycle.
+- Factory scenery is completed behind the player with the opposite copy, back wall/supports and symmetric overhead lights.
+- Same VR hand has a 0.5-second supervisor-hit cooldown. Alternating hands can still combo. Desktop's single connected glove shares one cooldown across left/right punch/slap actions.
+- A counter is blocked only when the actual moving fist segment contacts a glove region. A hand raised elsewhere does nothing. Contact block gives a thunk/chime and a short BLOCKED message, with no knockdown. No button press is needed to block.
+- Held mice wriggle their bodies more, bob by a few millimetres and kick faster with anchored feet. They retain the both-button grab rule.
+
+## Co-op rooms and play
+
+The menu has Co-op with Host, Join, room name, optional password, and a refreshable list of rooms waiting for a second player. Exactly two players, no spectators. A third player is rejected; only the host can start after a partner joins. Enter room text/password in the browser form before entering immersive VR. The in-world menu can start/leave a connected room; room setup exits VR to use the browser keyboard.
+
+Player one stands on the near side; player two is rotated 180 degrees on the opposite side. Both see the other player's head/torso and gloves; desktop is represented with one connected robot glove. Each side has a physical white reject bin and its own correctly facing in-world panel. The partner can catch released items. Open moving gloves meeting produce a high-five sound/haptic event, without adding score or damage. Lost/untracked hands are excluded.
+
+Co-op is an endless team shift with shared score, mistakes, supervisor and fired status. A teammate provoking the supervisor fires the team, preserving the previous no-more-points practice rule. If the targeted player is knocked down, the team shift ends; that player's own avatar falls. These are first-prototype team rules, subject to playtesting.
+
+Co-op belt speed is 1.5x solo; the mixed spawn interval is divided by 1.5, starts with a higher bad proportion, and mice are more frequent (up to four active). Additional initial upstream rejects and a faster good-only stream supply two players. The supervisor visits both sides and retaliates toward the player who struck him; either player's glove can physically intercept a counter.
+
+### Local implementation (setup deferred)
+
+The browser host simulates the shared world; a small Node/WebSocket relay handles room/password checks, exclusive item ownership, player poses, high-fives and disconnects. The guest receives world snapshots and sends input. This avoids running two independent physics/scoring loops. Shared item IDs and ownership prevent duplicate grabs/scoring. A joining VR player remains physically reach-limited; mouse controls remain the desktop fallback. Claims include a fresh hand pose to avoid fast-grab pose latency.
+
+No host migration: host disconnect closes the room, guest disconnect pauses it, and resuming requires a second player. Rooms and passwords are memory-only; passwords are salted/hashed and never included in room listings/snapshots. Payload/rate/room limits and heartbeat cleanup are included. This is for internal testing, not competitive anti-cheat or production-scale matchmaking.
+
+The relay can serve the built game and /multiplayer on the same origin. npm run server binds to 127.0.0.1:8787 by default. HOST/PORT configure binding; ALLOWED_ORIGINS can restrict browser origins. A public static build defaults to no configured co-op endpoint; the Connection section or server query parameter can supply one later. Quest needs HTTPS/WSS; no LAN certificate or secure external connection has been configured yet. The PC can run only the relay while two Quest players occupy the two slots.
+
+## Retained v0.6 changes
 
 - Supervisor collisions use current and previous moving poses plus arm/hand hit volumes, evaluated after his approach animation. Swept hand motion and a retract/re-arm rule make follow-up hits possible without a stationary hand generating repeated hits.
 - Bin walls/floor use continuous swept-sphere collision for the curved bean samples, with two solver passes and an interior containment guard below the rim. This targets fast inside-to-outside wall escapes while leaving the opening free.
@@ -67,19 +95,21 @@ node tests/menu.mjs
 node tests/supervisor-hits.mjs
 node tests/desktop-combat.mjs
 node tests/release6.mjs
+node tests/block-browser.mjs
+node tests/cooldown-browser.mjs
+node tests/coop-browser.mjs
 ```
 
 Tests use Microsoft Edge. TEST_URL overrides the desktop smoke test's address. Other browser tests inject synthetic controller poses through Vite development modules; they do not emulate a headset.
 
-Thirty-five unit tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
+Thirty-eight game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
 
-**v0.6 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest the downward glove tilt, early-approach hits and repeat combos, inside-wall ricochets, own-body invisibility in both eyes, fired/no-points practice and dodging the slower punch. Quest 2 needs its own hardware test.
+**v0.7 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest the downward glove tilt, early-approach hits and repeat combos, inside-wall ricochets, own-body invisibility in both eyes, fired/no-points practice and dodging the slower punch. Quest 2 needs its own hardware test.
 
 ## Limits and publication
 
 No bean-to-bean collisions, articulated finger collisions, hand tracking, or general factory rigid-body collisions. Bin and supervisor use dedicated collision volumes. Contact physics is an approximation, not Rapier. Downstream crate is visual/scored, not a physical growing pile. Avatar arm stretch and desktop aiming are development-friendly approximations.
 
-Shared geometry/materials, 66 active items, instanced static dressing, no dynamic shadows and pixel ratio capped at 1.5. Vite emits its standard approximately 500 KB chunk warning. Source on main, built files on gh-pages root, updated after approval. Build with npm ci and npm run build; publish dist contents. Relative paths support /bean-there-vr/.
+Shared geometry/materials, 88 active items, instanced static dressing, no dynamic shadows and pixel ratio capped at 1.5. Vite emits its standard approximately 500 KB chunk warning. Source on main, built files on gh-pages root, updated after approval. Build with npm ci and npm run build; publish dist contents. Relative paths support /bean-there-vr/.
 
-Deferred: networked co-op; packing with uninterrupted crate swaps, left scale and 15 kg target; premium export alignment and more complex factory simulation.
-
+Deferred: production hosting, host migration, voice chat and broad multiplayer device/performance validation; packing with uninterrupted crate swaps, left scale and 15 kg target; premium export alignment and more complex factory simulation.

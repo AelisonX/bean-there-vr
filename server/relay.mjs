@@ -1,0 +1,42 @@
+import {createServer} from 'node:http';import {readFile} from 'node:fs/promises';import {resolve,extname,sep} from 'node:path';import {fileURLToPath} from 'node:url';import {randomBytes,scryptSync,timingSafeEqual} from 'node:crypto';import {WebSocketServer,WebSocket} from 'ws';
+export function createRelay({port=8787,host='127.0.0.1',root=resolve(fileURLToPath(new URL('../dist/',import.meta.url))),origins=[]}={}){
+ const rooms=new Map(),clients=new Set();
+ const server=createServer(async(req,res)=>{try{const path=decodeURIComponent(new URL(req.url,'http://localhost').pathname);if(path==='/health'){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,rooms:rooms.size}));return;}const file=resolve(root,'.'+(path==='/'?'/index.html':path));if(!file.startsWith(root+sep)){res.writeHead(403);res.end();return;}const content=await readFile(file);res.writeHead(200,{'Content-Type':({'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png'})[extname(file)]??'application/octet-stream','Cache-Control':'no-cache'});res.end(content);}catch{res.writeHead(404);res.end('Build the game with npm run build first.');}});
+ const wss=new WebSocketServer({server,path:'/multiplayer',maxPayload:98304,verifyClient:info=>!origins.length||origins.includes(info.origin)});
+ const send=(ws,data)=>{if(ws.readyState===WebSocket.OPEN&&ws.bufferedAmount<262144)ws.send(JSON.stringify(data));};const broadcast=(room,data,except)=>{for(const ws of room.players)if(ws&&ws!==except)send(ws,data);};
+ const roster=room=>broadcast(room,{type:'roster',name:room.name,count:room.players.filter(Boolean).length,running:room.running});
+ function leave(ws){const room=ws.room;if(!room)return;ws.room=null;const slot=ws.slot;room.players[slot]=null;for(const [id,owner]of room.owners)if(owner.slot===slot){room.owners.delete(id);broadcast(room,{type:'release',slot,id,disconnect:true});}if(slot===0){rooms.delete(room.key);broadcast(room,{type:'ended',message:'Host disconnected. The room has closed.'});for(const p of room.players)if(p)p.room=null;}else{room.running=false;roster(room);broadcast(room,{type:'control',action:'pause',slot});}}
+ const finite=(a,n,limit=25)=>Array.isArray(a)&&a.length===n&&a.every(x=>Number.isFinite(x)&&Math.abs(x)<=limit);
+ wss.on('connection',ws=>{if(clients.size>=100){ws.close(1013);return;}clients.add(ws);ws.slot=-1;ws.room=null;ws.alive=true;ws.on('pong',()=>ws.alive=true);let messages=0,windowAt=Date.now(),auth=0;
+  ws.on('message',raw=>{let m;try{m=JSON.parse(raw.toString());}catch{return;}const now=Date.now();if(now-windowAt>10000){messages=auth=0;windowAt=now;}if(++messages>1200){ws.close(1008,'Too many messages');return;}
+   const reply=(data={},error)=>send(ws,{type:'reply',rid:m.rid,data,error});const room=ws.room;
+   if(m.type==='list'){reply({rooms:[...rooms.values()].filter(r=>r.players.filter(Boolean).length===1&&!r.running).map(r=>({name:r.name,password:!!r.hash,players:1}))});return;}
+   if(m.type==='leave'){leave(ws);reply();return;}
+   if(m.type==='host'||m.type==='join'){
+    if(++auth>8){reply({},'Too many room attempts. Wait a few seconds.');return;}if(room){reply({},'Leave the current room first.');return;}
+    const name=typeof m.name==='string'?m.name.trim():'';const password=typeof m.password==='string'?m.password:'';if(!/^[\p{L}\p{N} ._-]{1,32}$/u.test(name)||password.length>64){reply({},'Use a room name of 1–32 letters/numbers; password up to 64 characters.');return;}const key=name.toLowerCase();
+    if(m.type==='host'){if(rooms.has(key)||rooms.size>=50){reply({},'That room name is in use or the server is full.');return;}const salt=randomBytes(16);const r={key,name,salt,hash:password?scryptSync(password,salt,32):null,players:[ws,null],owners:new Map(),items:new Map(),running:false,epoch:0,poses:[null,null],highFiveAt:0,near:false};rooms.set(key,r);ws.room=r;ws.slot=0;reply({slot:0,name});roster(r);}
+    else{const r=rooms.get(key);if(!r||r.running||r.players[1]){reply({},'Room not found, already playing, or full.');return;}if(r.hash&&!timingSafeEqual(r.hash,scryptSync(password,r.salt,32))){reply({},'Incorrect room password.');return;}r.players[1]=ws;ws.room=r;ws.slot=1;reply({slot:1,name:r.name});roster(r);}return;
+   }
+   if(!room)return;
+   if(['snapshot','claim','move','release','action'].includes(m.type)&&m.epoch!==room.epoch){if(m.rid)reply({},'This shift has restarted.');return;}
+   if(m.type==='start'){if(ws.slot!==0||!room.players[1]){reply({},'Only the host can start, after a second player joins.');return;}room.running=true;room.epoch++;room.owners.clear();room.items.clear();broadcast(room,{type:'start',epoch:room.epoch});reply();return;}
+   if(m.type==='control'&&['pause','resume'].includes(m.action)){if(m.action==='resume'&&!room.players[1])return;broadcast(room,{type:'control',action:m.action,slot:ws.slot});return;}
+   if(m.type==='snapshot'&&ws.slot===0){if(!Array.isArray(m.state?.beans)||m.state.beans.length>100)return;for(const b of m.state.beans)if(!Number.isInteger(b.id)||!finite(b.p,3)||!finite(b.q,4,2)||!finite(b.s,3,3))return;room.items=new Map(m.state.beans.map(b=>[b.id,b]));for(const id of room.owners.keys())if(!room.items.has(id))room.owners.delete(id);broadcast(room,{type:'snapshot',state:m.state},ws);return;}
+   if(m.type==='claim'){
+    const item=room.items.get(m.id),hand=Number(m.hand);if(!room.running||!item||room.owners.has(m.id)||![0,1].includes(hand)||!['trigger','grip','mouse'].includes(m.button)){reply({},'Item unavailable.');return;}
+    const holding=[...room.owners.values()].filter(o=>o.slot===ws.slot&&o.hand===hand);if(item.critter?m.button!=='mouse'||holding.length: m.button==='mouse'||holding.some(o=>o.button===m.button||o.button==='mouse')||holding.length>=2){reply({},'Hand is full.');return;}
+    const pose=room.poses[ws.slot];if(pose?.mode==='vr'&&(!pose.hands[hand]||pose.hands[hand].tracked===false||Math.hypot(...item.p.map((x,i)=>x-pose.hands[hand].p[i]))>.3)){reply({},'Item is out of reach.');return;}
+    room.owners.set(m.id,{slot:ws.slot,hand,button:m.button});broadcast(room,{type:'claim',id:m.id,slot:ws.slot,hand,button:m.button});reply();return;
+   }
+   if(m.type==='move'||m.type==='release'){if(room.owners.get(m.id)?.slot!==ws.slot||!finite(m.p,3)||!finite(m.q,4,2)||m.type==='release'&&!finite(m.v,3,15))return;broadcast(room,{...m,rid:undefined,slot:ws.slot},ws);if(m.type==='release')room.owners.delete(m.id);return;}
+   if(m.type==='pose'){const p=m.pose;if(!p||!finite(p.head?.p,3)||!finite(p.head?.q,4,2)||!Array.isArray(p.hands)||p.hands.length>2||p.hands.some(h=>!finite(h.p,3)||!finite(h.q,4,2))||!['vr','mouse'].includes(p.mode))return;const old=room.poses[ws.slot];room.poses[ws.slot]={...p,at:now};broadcast(room,{type:'pose',slot:ws.slot,pose:p},ws);
+    const other=room.poses[1-ws.slot];let near=false,moving=false;if(other&&now-other.at<500){for(const h of p.hands)for(const k of other.hands)if(Math.hypot(...h.p.map((x,i)=>x-k.p[i]))<.14&&h.tracked!==false&&k.tracked!==false&&!h.closed&&!k.closed){near=true;if(old&&now>old.at)moving=p.hands.some((h,i)=>old.hands[i]&&Math.hypot(...h.p.map((x,j)=>x-old.hands[i].p[j]))/((now-old.at)/1000)>.2);}}if(near&&!room.near&&moving&&now-room.highFiveAt>800){room.highFiveAt=now;broadcast(room,{type:'highfive'});}room.near=near;return;
+   }
+   if(m.type==='action'&&room.running&&['strike','push','block'].includes(m.action)){if(m.action==='strike'&&(!['slap','punch'].includes(m.kind)||!Number.isFinite(m.speed)||m.speed<=0||m.speed>6||![0,1].includes(m.hand)))return;if(m.action==='push'&&(!finite(m.p,3)||!finite(m.v,3,10)))return;broadcast(room,{...m,slot:ws.slot},ws);}
+  });ws.on('close',()=>{leave(ws);clients.delete(ws);});ws.on('error',()=>{});
+ });
+ const heartbeat=setInterval(()=>{for(const ws of clients){if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}},15000);heartbeat.unref();
+ return {server,rooms,wss,listen:()=>new Promise(r=>server.listen(port,host,()=>r(server.address()))),close:()=>new Promise(r=>{clearInterval(heartbeat);for(const ws of clients)ws.terminate();wss.close(()=>server.close(r));})};
+}
+if(process.argv[1]===fileURLToPath(import.meta.url)){const app=createRelay({port:Number(process.env.PORT)||8787,host:process.env.HOST||'127.0.0.1',origins:process.env.ALLOWED_ORIGINS?.split(',')??[]});await app.listen();console.log('Bean There co-op server listening on port '+(process.env.PORT||8787));}
