@@ -1,5 +1,5 @@
 import * as T from 'three';
-export type WireItem={id:number,bad:boolean,critter:boolean,g:number,m:number,s:number[],p:number[],q:number[],state:string,owner?:number};
+export type WireItem={id:number,bad:boolean,critter:boolean,g:number,m:number,s:number[],p:number[],q:number[],state:string,touched?:boolean,owner?:number};
 export type Pose={mode:'vr'|'mouse',head:{p:number[],q:number[]},hands:{p:number[],q:number[],closed:boolean,tracked?:boolean}[]};
 export class Coop {
  socket:WebSocket|undefined;slot=-1;name='';count=0;running=false;epoch=0;peer:Pose|undefined;state:any;pending=new Map<number,{resolve:(x:any)=>void,reject:(x:Error)=>void}>();serial=0;

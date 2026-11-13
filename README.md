@@ -1,8 +1,8 @@
-# Bean There VR v0.8
+# Bean There VR v0.9
 
 A very normal job. Now in three dimensions.
 
-Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.7 is live. v0.8 includes the next single-player and co-op changes locally, pending approval to publish. Co-op connection setup will be discussed after the single-player headset test.
+Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.8 is live. v0.9 mouse improvements are prepared locally, pending approval to publish. Co-op connection setup will be discussed after the single-player headset test.
 
 ## Run
 
@@ -103,7 +103,7 @@ node tests/coop-browser.mjs
 
 Tests use Microsoft Edge. TEST_URL overrides the desktop smoke test's address. Other browser tests inject synthetic controller poses through Vite development modules; they do not emulate a headset.
 
-Forty-three game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
+Forty-five game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
 
 **v0.8 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest the downward glove tilt, early-approach hits and repeat combos, inside-wall ricochets, own-body invisibility in both eyes, fired/no-points practice and dodging the slower punch. Quest 2 needs its own hardware test.
 
@@ -120,3 +120,6 @@ Deferred: production hosting, host migration, voice chat and broad multiplayer d
 
 ### v0.8 changes
 Normal shifts allow 20 mistakes, endless 40. Handling/pushing good beans is free; losing a good bean off the belt or binning it is a mistake. The supervisor visits at each five-mistake milestone. First physical strike fires the player with a warning; the second starts retaliation, aiming for impact about 1.55 seconds later while in reach. Further hits do not postpone that first counter. Hits remain active during all approach/yelling/reaction poses until KO or out of reach. Mice roam faster across the belt and displace beans using the existing planar contacts. Prepared locally for approval before publishing.
+
+### v0.9 mouse behavior
+Untouched mice stay inside every belt edge, including the downstream end, despite conveyor motion or crowd contacts. The protection ends permanently after a player touches or picks up the mouse. Either co-op player can unlock it, and that state is synchronized. Belt mice choose nearby beans, seek them and curve around close targets while pushing them through planar contacts; they retarget periodically rather than wandering aimlessly. With no beans they wait on the moving belt. Floor escape behavior is retained after handling. Automated coverage includes all-edge confinement, seeking, VR pickup/unlocking, floor escape and remote touch synchronization.
