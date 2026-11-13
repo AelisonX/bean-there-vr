@@ -2,7 +2,7 @@
 
 A very normal job. Now in three dimensions.
 
-Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.4 is live; v0.5 is prepared locally and awaits approval to push/publish.
+Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.5 is published with user approval. Deployment and the live desktop browser playtest passed; physical Quest testing of this update remains pending.
 
 ## Run
 
@@ -72,3 +72,4 @@ No bean-to-bean collisions, articulated finger collisions, hand tracking, or gen
 Shared geometry/materials, 60 active items, instanced static dressing, no dynamic shadows and pixel ratio capped at 1.5. Vite emits its standard approximately 500 KB chunk warning. Source on main, built files on gh-pages root, updated after approval. Build with npm ci and npm run build; publish dist contents. Relative paths support /bean-there-vr/.
 
 Deferred: networked co-op; packing with uninterrupted crate swaps, left scale and 15 kg target; premium export alignment and more complex factory simulation.
+
