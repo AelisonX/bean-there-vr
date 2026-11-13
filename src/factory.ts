@@ -35,7 +35,7 @@ export class Supervisor {
  root=new T.Group();left=new T.Group();right=new T.Group();head=new T.Group();jaw:T.Mesh;
  reaction:'object'|'slap'|'punch'|null=null;reactionTime=0;
  knockedOut=false;koAge=0;koPosition=new T.Vector3();
- focusSeat=0;
+ focusSeat=0;leavingAlone=false;
  counterTarget:T.Vector3|undefined;counterAge=1;previousMatrix=new T.Matrix4();previousZones:T.Sphere[]=[];
  mode:'idle'|'approach'|'angry'|'retreat'|'lose'|'ko'='idle'; age=0; timer=0;lastVisit=0;lastMistakes=0;lastPhase:Phase='ready'; voiceTimer=0;
  constructor(scene:T.Scene,private speak:(lose:boolean)=>void){
@@ -62,13 +62,13 @@ export class Supervisor {
  knockOut(){this.knockedOut=true;this.koAge=0;this.koPosition.copy(this.root.position);this.mode='ko';}
  counterAttack(target:T.Vector3){this.counterTarget=target.clone();this.counterAge=0;this.counterPose();}
  private counterPose(){if(!this.counterTarget||this.counterAge>.9){this.right.scale.y=1;return;}this.root.updateWorldMatrix(true,false);const local=this.root.worldToLocal(this.counterTarget.clone()).sub(this.right.position);this.right.quaternion.setFromUnitVectors(new T.Vector3(0,-1,0),local.clone().normalize());this.right.scale.y=1+Math.max(0,Math.min(3,local.length()/.35)-1)*Math.sin(Math.min(1,this.counterAge/.9)*Math.PI);}
- reset(){this.counterTarget=undefined;this.counterAge=1;this.right.scale.y=1;this.knockedOut=false;this.koAge=0;this.reaction=null;this.reactionTime=0;this.mode='idle';this.age=this.timer=this.lastVisit=this.lastMistakes=this.voiceTimer=0;this.lastPhase='ready';this.root.position.set(-1.95,0,-.72);this.root.rotation.set(0,0,0);this.head.rotation.set(0,0,0);this.left.rotation.set(0,0,0);this.right.rotation.set(0,0,0);this.jaw.scale.y=.015;this.capturePose();}
+ reset(){this.leavingAlone=false;this.counterTarget=undefined;this.counterAge=1;this.right.scale.y=1;this.knockedOut=false;this.koAge=0;this.reaction=null;this.reactionTime=0;this.mode='idle';this.age=this.timer=this.lastVisit=this.lastMistakes=this.voiceTimer=0;this.lastPhase='ready';this.root.position.set(-1.95,0,-.72);this.root.rotation.set(0,0,0);this.head.rotation.set(0,0,0);this.left.rotation.set(0,0,0);this.right.rotation.set(0,0,0);this.jaw.scale.y=.015;this.capturePose();}
  update(dt:number,phase:Phase,elapsed:number,mistakes:number){
   if(phase==='paused'||phase==='ready'||phase==='complete')return;this.capturePose();
   if(this.knockedOut){this.koAge+=dt;const fall=T.MathUtils.smoothstep(this.koAge,0,.85);this.root.position.copy(this.koPosition);this.root.position.y=.23*fall;this.root.rotation.z=-Math.PI/2*fall;this.root.rotation.x=0;this.left.rotation.x=this.right.rotation.x=-1;return;}
   this.counterAge+=dt;this.reactionTime=Math.max(0,this.reactionTime-dt);this.age+=dt;this.timer+=dt;this.voiceTimer-=dt;
   if(phase==='failed'&&this.lastPhase!=='failed'){this.mode='lose';this.timer=0;this.speak(true);this.voiceTimer=4;}
-  if(phase==='running'&&this.mode==='idle'&&(Math.floor(mistakes/5)>this.lastVisit)){this.mode='approach';this.timer=0;this.lastVisit++;}
+  if(phase==='running'&&!this.leavingAlone&&this.mode==='idle'&&(Math.floor(mistakes/5)>this.lastVisit)){this.mode='approach';this.timer=0;this.lastVisit++;}
   this.lastMistakes=mistakes;this.lastPhase=phase;
   const visiting=this.mode==='approach'||this.mode==='angry'||this.mode==='lose';
   const roundEnd=(this.mode==='approach'&&this.timer<1.4)||(this.mode==='retreat'&&this.timer<1.4);

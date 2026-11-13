@@ -1,8 +1,8 @@
-# Bean There VR v0.10
+# Bean There VR v0.11
 
 A very normal job. Now in three dimensions.
 
-Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.10 combines the approved mouse improvements, faster difficulty curve and revised supervisor fight. Co-op connection setup will be discussed after the single-player headset test.
+Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.10 is live. v0.11 adds fight disengagement locally, pending approval to publish. Co-op connection setup will be discussed after the single-player headset test.
 
 ## Run
 
@@ -103,7 +103,7 @@ node tests/coop-browser.mjs
 
 Tests use Microsoft Edge. TEST_URL overrides the desktop smoke test's address. Other browser tests inject synthetic controller poses through Vite development modules; they do not emulate a headset.
 
-Forty-nine game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
+Fifty-two game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
 
 **v0.10 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest the downward glove tilt, early-approach hits and repeat combos, inside-wall ricochets, own-body invisibility in both eyes, fired/no-points practice and dodging the slower punch. Quest 2 needs its own hardware test.
 
@@ -126,3 +126,8 @@ Untouched mice stay inside every belt edge, including the downstream end, despit
 
 ### v0.10 verification
 49 unit/relay tests, production build, live browser combat checks for harmless first hit and lethal damage during an uninterrupted counter, retained mouse behavior and two-player synchronization. Quest feel and balance require playtesting.
+
+### v0.11 fight disengagement
+Five blocked or dodged counters in a fight make the supervisor retreat and stop both retaliation and mistake-triggered visits. Fired status and damage persist. A new physical strike restarts retaliation, clears the five-counter tally and keeps the player fired. Counts and disengagement are shared in co-op. Knockout damage still takes priority when an uninterruptible counter finishes. Prepared locally pending approval to publish.
+
+Verified v0.11: 52 unit/relay tests, production build, five actual in-game dodges leading to retreat, restarting combat while remaining fired, and physical glove blocking.
