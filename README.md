@@ -1,65 +1,57 @@
-# Bean There VR — first playable prototype
+# Bean There VR v0.2
 
 A very normal job. Now in three dimensions.
 
-Standalone Three.js + TypeScript + Vite project. Repository: **https://github.com/AelisonX/bean-there-vr**. Published with user approval at **https://aelisonx.github.io/bean-there-vr/**. Source is on main; the production build is on gh-pages. The original game was inspected at commit `3e42b4db7d4d5cd0a5d9f876cd68c66f07e3b7cf` in a separate reference checkout and was not modified. No original source or assets were copied.
+Three.js + TypeScript + Vite. Separate repository: https://github.com/AelisonX/bean-there-vr. Website: https://aelisonx.github.io/bean-there-vr/. Original game untouched. Website remains on the previous release until this update is approved for publication.
 
-## Run on PC
-
-Requires Node 22.12+ (tested with Node 24).
+## Play
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open the localhost address printed by Vite. For the current work session a server is running at **http://127.0.0.1:5174/**.
+Requires Node 22.12+ (tested on 24). Open the localhost address printed by Vite. For Quest, use the HTTPS website in Meta Quest Browser and select Enter VR.
 
-- Start shift: 20 good beans and 5 visible rejects, followed by continuous spawning.
-- Click a bean, move it over the white bin on your right, then click to release. Thin beans have a small targeting tolerance.
-- Leave good green beans on the conveyor. Brown, yellow, tightly curled beans are rejects.
-- Correct rejection: +20. Good bean downstream: +2. Wasted good bean: −18. Missed defect: −10. Score floors at zero.
-- Five mistakes ends the shift. Survive 90 seconds to complete it. Speed and defect frequency increase gradually.
-- P / Escape pauses; R restarts. Hidden tabs pause and require manual resume. Sound toggle controls feedback tones.
-- Station height slider adjusts the equipment before entering VR, including for seated play.
+Desktop: click a bean, move over the white bin and click to drop. R restarts the selected mode; P / Escape pauses. Select Start shift for 90 seconds or Endless shift for unlimited duration until five mistakes. Station-height slider adjusts equipment before entering VR, for seated/standing play. Hidden tabs pause and require manual resume.
 
-## Quest 3 / Quest 2 test
+VR: reach with the gloves. Hold trigger or grip to grab an item within about 7.5 cm of the mesh. Release to throw/drop; if both buttons are held, release both. Catch airborne items with either hand for juggling. Move an open glove against items to push. Rays only activate the menu: left half starts timed, right half endless; during play it pauses/resumes. Produce cannot be grabbed at a distance. No artificial locomotion.
 
-**Physical headset compatibility, comfort and 72 FPS performance are unverified.** WebXR entry and controller handling are implemented, not a substitute for hardware testing.
+Leave good green beans on the belt. Brown, yellow, tightly curled, short/broken beans and occasional mice go in the white reject bin forward/right. Correct rejection +20, good downstream +2, wasted good bean −18, escaped defect −10, score floors at zero. Floor drops count as missed defects/wasted produce. Five mistakes fails either mode.
 
-Quest Browser needs a secure origin. The PC's localhost address is not reachable as localhost on a Quest. After approval, publish `dist/` to an HTTPS host, or use an already configured trusted HTTPS development connection. Plain HTTP over the LAN is insufficient for immersive VR.
+## Changes after first Quest feedback
 
-1. Open the HTTPS build in Quest Browser and enter VR.
-2. Start in the center of your boundary facing the conveyor. No locomotion is required. Adjust the station height in the browser before entry if needed.
-3. Point either controller at the station panel and press its trigger to start. The same panel pauses/resumes; after failure/completion it restarts.
-4. Point at a bean and press trigger to grab. A second trigger press releases it. Both hands can hold independent beans. Ray grabbing keeps reaching optional.
-5. Release over the white reject bin on your right. Check correct rejects, good-bean penalties, missed defects, two-handed release, pause, session exit and restart.
-6. Check legibility, seated/standing reach, controller alignment and frame rate on each headset. Record any discomfort before increasing difficulty.
+- Bin moved forward, completely clear of belt/front rail.
+- Simple gloves with palms, thumbs, fingers and cuffs from controller grip poses; fingers curl on pickup.
+- Physical-range hold grabbing, throwing with recent hand velocity, airborne catching and open-hand pushing. Release speed capped at 6 m/s to suppress tracking spikes.
+- Gravity, short substeps, belt landing and sliding/friction, fast bin-opening crossing detection. Releasing hand briefly ignores its own throw.
+- More bean length, thickness, color and shape variation. Rare procedural mice: about 2.4–4.8% of new items, depending on defect frequency. Initial batch remains exactly 20 good and 5 defective beans.
+- Belt gains 0.0015 m/s per correct reject, capped at 0.14 m/s from 0.065 m/s. Time/mistakes do not increase speed. Spawn frequency and defect probability still increase gently over time.
+- Endless mode, with the same five-mistake failure rule.
+- Quiet synthesized conveyor motor/roller audio, silenced by pause, hidden tabs and sound toggle.
 
-Controllers are tracked target-ray spaces with simple colored hand markers; no hand tracking or articulated hands. Release uses gentle gravity, not velocity-based throwing. This deliberately small hybrid simulation uses kinematic belt movement and bin/belt bounds instead of Rapier.
-
-## Checks
+## Validation and headset checks
 
 ```sh
 npm test
 npm run build
 npm run dev -- --port 5174
 node tests/browser.mjs
+node tests/vr-interactions.mjs
 ```
 
-The browser test uses installed Microsoft Edge. Set `TEST_URL` for another local port. Passed checks: five rules tests; TypeScript and production build; real browser rendering, initial 20/5 batch, conveyor movement, mouse grab/drop into bin, +20 score, pause, restart, XR enabled and no page errors. The browser test does not emulate a headset or establish VR performance.
+Browser tests use Microsoft Edge. TEST_URL overrides the desktop test address. Synthetic VR tests require Vite so they can import the loaded game module and supply controller poses. They do not emulate a physical headset.
 
-Geometry and materials are shared, active beans capped at 60, no dynamic shadows, pixel ratio capped at 1.5. Production JavaScript is approximately 505 KB / 130 KB gzip; Vite emits its standard 500 KB chunk-size warning.
+Ten rules/interaction tests cover scoring, failure, reset, pause, 20/5 mix, endless duration, capped success-based speed, throw velocity, swept contact and bin clearance. Browser checks cover rendering, movement, mouse sorting/scoring, pause/restart, remote-grab rejection, hold/release, throwing, opposite-hand catching, pushing, fast bin entry scoring once and endless simulation.
 
-## Publishing (approval required)
+**v0.2 physical Quest controls, comfort and 72 FPS remain unverified.** The user tested v0.1 on Quest 3 and provided the feedback behind this release. Check glove alignment, nearby pickup, trigger/grip release, throwing/juggling, pushing, bin clearance, mode selection, restart while holding, pause, mute and session exit. Repeat on Quest 2 before claiming compatibility/performance.
 
-The build uses a relative asset base, compatible with a future `/bean-there-vr/` GitHub Pages path ([Vite deployment guide](https://vite.dev/guide/static-deploy.html)). No automatic deployment workflow is installed. After explicit approval: create the separate repository, push this source, build with `npm ci && npm run build`, and publish the `dist/` contents through Pages. Do not deploy the source folder as an unbuilt static game.
+## Limits and publishing
 
-## Next milestones — intentionally deferred
+Lightweight interaction physics, not full rigid bodies: no bean-to-bean collision, solid bin-wall/environment collision or articulated finger contact. Gloves use a palm contact volume. No hand tracking; controllers required. Critters have simple procedural models and no AI. Downstream crate is visual and scored rather than a growing physical pile.
 
-Packing: green receiving crate directly below the conveyor end; swap full crates while the belt continues; scale on the left; adjust to 15 kg; inspect the top layer; outgoing conveyor behind the player. Overflow fails production.
+Shared bean geometry/materials, 60 active-item cap, no dynamic shadows, pixel ratio capped at 1.5. Vite emits its standard approximately 500 KB chunk-size warning.
 
-Premium export: white polystyrene boxes, straight/slender quality standards, careful weight and parallel top-layer alignment. Future supervisor: short brown hair, orange high-vis vest, mask, clipboard. No packing, weighing, supervisor AI or multiplayer is implemented in this milestone.
+Source on main; built files on gh-pages root, published after approval. Build with npm ci and npm run build; publish dist contents. Relative asset paths support /bean-there-vr/. Never modify original bean-there for this prototype.
 
-Known prototype limits: simple bin/belt collision without bean-to-bean physics; no velocity throwing/flicking, ambient factory sound loop, saved progress or controller models. Downstream collection is represented by a green crate and scoring rather than a growing physical pile. Mistake allowance and speed need human difficulty calibration.
-
+Deferred: packing with green receiving crate below belt end, uninterrupted crate swaps, scale on left, 15 kg target, outgoing belt behind player and overflow failure. Premium export uses white polystyrene boxes and parallel top-layer alignment. Packing, weighing and supervisor AI remain future milestones.
