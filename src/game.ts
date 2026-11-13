@@ -14,8 +14,9 @@ export class Shift {
     if (bad && bin) { if(!this.fired)this.score += 20; this.rejected++; }
     else if (!bad && !bin) { if(!this.fired)this.score += 2; this.collected++; }
     else { if(!this.fired)this.score = Math.max(0, this.score - (bad ? 10 : 18)); this.mistakes++; }
-    if (!this.fired&&this.mistakes >= MISTAKE_LIMIT) {this.phase = 'failed';this.endReason='mistakes';}
+    if (!this.fired&&this.mistakes >= this.mistakeLimit) {this.phase = 'failed';this.endReason='mistakes';}
   }
+  get mistakeLimit(){return this.mode==='endless'?40:20;}
   get speed() {
     if(this.mode === 'endless') {
       // Deliberate five-minute pressure curve; human survival time needs playtesting.
@@ -26,7 +27,7 @@ export class Shift {
   }
 }
 export function initialBatch() { return Array.from({length:64}, (_,i) => i<30&&(i % 5 === 2||i===29)); }
-export const MISTAKE_LIMIT=10;
+export const MISTAKE_LIMIT=20;
 export function initialPosition(bad:boolean,index:number){
  if(bad){const order=index===29?6:Math.floor(index/5);return order<3?{x:-.24+order*.23,z:-.49}:{x:-1.28-(order%2)*.08,z:-.52-(order-3)*.12};}
  if(index>=30)return {x:-1.24+(index-30)%9*.29,z:-1.0+Math.floor((index-30)/9)*.145};

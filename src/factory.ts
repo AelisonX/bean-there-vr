@@ -68,7 +68,7 @@ export class Supervisor {
   if(this.knockedOut){this.koAge+=dt;const fall=T.MathUtils.smoothstep(this.koAge,0,.85);this.root.position.copy(this.koPosition);this.root.position.y=.23*fall;this.root.rotation.z=-Math.PI/2*fall;this.root.rotation.x=0;this.left.rotation.x=this.right.rotation.x=-1;return;}
   this.counterAge+=dt;this.reactionTime=Math.max(0,this.reactionTime-dt);this.age+=dt;this.timer+=dt;this.voiceTimer-=dt;
   if(phase==='failed'&&this.lastPhase!=='failed'){this.mode='lose';this.timer=0;this.speak(true);this.voiceTimer=4;}
-  if(phase==='running'&&this.mode==='idle'&&(elapsed-this.lastVisit>35||mistakes>this.lastMistakes||elapsed>12&&this.lastVisit===0)){this.mode='approach';this.timer=0;this.lastVisit=elapsed;}
+  if(phase==='running'&&this.mode==='idle'&&(Math.floor(mistakes/5)>this.lastVisit)){this.mode='approach';this.timer=0;this.lastVisit++;}
   this.lastMistakes=mistakes;this.lastPhase=phase;
   const visiting=this.mode==='approach'||this.mode==='angry'||this.mode==='lose';
   const roundEnd=(this.mode==='approach'&&this.timer<1.4)||(this.mode==='retreat'&&this.timer<1.4);

@@ -1,8 +1,8 @@
-# Bean There VR v0.7
+# Bean There VR v0.8
 
 A very normal job. Now in three dimensions.
 
-Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.7 includes single-player and co-op in one published build. Co-op connection setup will be discussed after the single-player headset test.
+Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.7 is live. v0.8 includes the next single-player and co-op changes locally, pending approval to publish. Co-op connection setup will be discussed after the single-player headset test.
 
 ## Run
 
@@ -13,7 +13,7 @@ npm run dev
 
 Node 22.12+ (tested on 24). Open Vite's printed localhost address. Quest: open the published HTTPS site in Meta Quest Browser and select Enter VR.
 
-Main menu chooses a 90-second shift or endless mode; both normally fail at ten sorting mistakes. Fired practice is separate: scoring freezes and play can continue beyond the timer/mistake limit until the supervisor knocks you down or you restart. Options: sound, bin assist, workstation height. P / Escape pauses, R restarts, and VR A / X opens/resumes the pause menu. Hidden tabs and VR session exit pause. No artificial locomotion.
+Main menu chooses a 90-second shift or endless mode; normal mode fails at 20 sorting mistakes and endless at 40. Fired practice is separate: scoring freezes and play can continue beyond the timer/mistake limit until the supervisor knocks you down or you restart. Options: sound, bin assist, workstation height. P / Escape pauses, R restarts, and VR A / X opens/resumes the pause menu. Hidden tabs and VR session exit pause. No artificial locomotion.
 
 ## Controls
 
@@ -23,11 +23,11 @@ Desktop: **hold left mouse for the first item and right mouse for the second; re
 
 Good green beans stay on the belt. Brown/yellow, tightly curled, short/broken beans and rare mice belong in the white bin forward/right. Correct reject +20; good downstream +2; wasted good −18; missed defect −10; score floors at zero. Floor drops count as mistakes. Initial batch is 57 good / 7 bad, with bad items only near the player or upstream.
 
-## v0.7 / testing order
+## v0.8 / testing order
 
 **Single-player first. Co-op setup and headset pairing afterwards, on this same version.** No external server, account, tunnel, firewall rule or paid hosting has been created. Local loopback servers were used for automated tests only.
 
-- Extra good-bean stream scales with speed and player count. Initial batch has 57 green and seven bad beans. Reserve capacity keeps reject arrivals flowing. See final v0.7 tuning below.
+- Extra good-bean stream scales with speed and player count. Initial batch has 57 green and seven bad beans. Reserve capacity keeps reject arrivals flowing. See final v0.8 tuning below.
 - Factory scenery is completed behind the player with the opposite copy, back wall/supports and symmetric overhead lights.
 - Same VR hand has a 0.5-second supervisor-hit cooldown. Alternating hands can still combo. Desktop's single connected glove shares one cooldown across left/right punch/slap actions.
 - A counter is blocked only when the actual moving fist segment contacts a glove region. A hand raised elsewhere does nothing. Contact block gives a thunk/chime and a short BLOCKED message, with no knockdown. No button press is needed to block.
@@ -97,14 +97,15 @@ node tests/desktop-combat.mjs
 node tests/release6.mjs
 node tests/block-browser.mjs
 node tests/cooldown-browser.mjs
+node tests/release8-browser.mjs
 node tests/coop-browser.mjs
 ```
 
 Tests use Microsoft Edge. TEST_URL overrides the desktop smoke test's address. Other browser tests inject synthetic controller poses through Vite development modules; they do not emulate a headset.
 
-Thirty-nine game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
+Forty-three game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
 
-**v0.7 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest the downward glove tilt, early-approach hits and repeat combos, inside-wall ricochets, own-body invisibility in both eyes, fired/no-points practice and dodging the slower punch. Quest 2 needs its own hardware test.
+**v0.8 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest the downward glove tilt, early-approach hits and repeat combos, inside-wall ricochets, own-body invisibility in both eyes, fired/no-points practice and dodging the slower punch. Quest 2 needs its own hardware test.
 
 ## Limits and publication
 
@@ -114,5 +115,8 @@ Shared geometry/materials, 128 active items, instanced static dressing, no dynam
 
 Deferred: production hosting, host migration, voice chat and broad multiplayer device/performance validation; packing with uninterrupted crate swaps, left scale and 15 kg target; premium export alignment and more complex factory simulation.
 
-### Final v0.7 playtest tuning
+### Final v0.8 playtest tuning
 57 green and 7 defective starting beans. Belt speed reduced 15%; green arrivals scale with speed and co-op difficulty. Reject density stays gentle for two minutes, then increases in endless. Early rejects keep a visible upper silhouette, and nearby green beans yield in the belt plane. Mice scurry and displace nearby beans; floor-landed mice run away for three seconds and count only once. Thrown items visibly stagger the supervisor and, during co-op combat, redirect his next counter to the thrower with a new warning window.
+
+### v0.8 changes
+Normal shifts allow 20 mistakes, endless 40. Handling/pushing good beans is free; losing a good bean off the belt or binning it is a mistake. The supervisor visits at each five-mistake milestone. First physical strike fires the player with a warning; the second starts retaliation, aiming for impact about 1.55 seconds later while in reach. Further hits do not postpone that first counter. Hits remain active during all approach/yelling/reaction poses until KO or out of reach. Mice roam faster across the belt and displace beans using the existing planar contacts. Prepared locally for approval before publishing.
