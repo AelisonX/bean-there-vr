@@ -2,7 +2,7 @@
 
 A very normal job. Now in three dimensions.
 
-Three.js + TypeScript + Vite. Separate repository: https://github.com/AelisonX/bean-there-vr. Website: https://aelisonx.github.io/bean-there-vr/. Original game untouched. v0.3 is live; v0.4 is prepared locally and awaits approval to push/publish.
+Three.js + TypeScript + Vite. Separate repository: https://github.com/AelisonX/bean-there-vr. Website: https://aelisonx.github.io/bean-there-vr/. Original game untouched. v0.4 is published with user approval. The live desktop browser playtest passed; physical Quest testing of this update remains pending.
 
 ## Run and choose a mode
 
@@ -75,3 +75,4 @@ Shared geometry/materials, a 60-active-item cap, no dynamic shadows and pixel ra
 Source on main, built static files on gh-pages root, published after approval. Run npm ci and npm run build, then publish dist contents. Relative paths support /bean-there-vr/. Never modify the original bean-there game for this prototype.
 
 Deferred: packing with receiving crate below belt end, uninterrupted swaps, left scale, 15 kg target, outgoing belt behind player and overflow failure; premium white export boxes and parallel top-layer alignment; networked co-op and more complex supervisor AI.
+
