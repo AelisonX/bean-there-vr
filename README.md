@@ -1,8 +1,8 @@
-# Bean There VR v0.11
+# Bean There VR v0.12
 
 A very normal job. Now in three dimensions.
 
-Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.10 is live. v0.11 adds fight disengagement locally, pending approval to publish. Co-op connection setup will be discussed after the single-player headset test.
+Three.js + TypeScript + Vite. Repository: https://github.com/AelisonX/bean-there-vr. Game: https://aelisonx.github.io/bean-there-vr/. Original Bean There game untouched. v0.11 is live. v0.12 fixes remote VR placement, restart hit registration, guest bin placement and middle/later reject density locally, pending approval to publish. Co-op connection setup will be discussed after the single-player headset test.
 
 ## Run
 
@@ -103,7 +103,7 @@ node tests/coop-browser.mjs
 
 Tests use Microsoft Edge. TEST_URL overrides the desktop smoke test's address. Other browser tests inject synthetic controller poses through Vite development modules; they do not emulate a headset.
 
-Fifty-two game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
+Fifty-five game/relay tests. Coverage: scoring, reset/pause, safe opening, hand slots, assist, solid walls/floor/rim bounce and spin, an assisted catch versus an unassisted miss, combo timeout, punch-only KO, telegraphed counter, avatar visibility and VR camera stability. Browser coverage: actual mouse holds/releases/throws and strikes, synthetic VR grabs/combos, supervisor KO/counter defeat, fall animation, menus, character sounds and punch amplitude.
 
 **v0.10 physical Quest alignment, comfort, bin feel and 72 FPS performance remain unverified.** The user tested earlier releases on Quest 3. Retest the downward glove tilt, early-approach hits and repeat combos, inside-wall ricochets, own-body invisibility in both eyes, fired/no-points practice and dodging the slower punch. Quest 2 needs its own hardware test.
 
@@ -131,3 +131,10 @@ Untouched mice stay inside every belt edge, including the downstream end, despit
 Five blocked or dodged counters in a fight make the supervisor retreat and stop both retaliation and mistake-triggered visits. Fired status and damage persist. A new physical strike restarts retaliation, clears the five-counter tally and keeps the player fired. Counts and disengagement are shared in co-op. Knockout damage still takes priority when an uninterruptible counter finishes. Prepared locally pending approval to publish.
 
 Verified v0.11: 52 unit/relay tests, production build, five actual in-game dodges leading to retreat, restarting combat while remaining fired, and physical glove blocking.
+
+### v0.12 playtest fixes
+XR head poses apply the player rig transform exactly once rather than reading the renderer-owned XR matrix as an ordinary world transform. Remote avatars snap to their first pose and when switching desktop/VR, then smooth ongoing movement. Guest station bin is now on its left (world x=+0.95, z=-1.74), including solid contacts, capture, assist and sign. VR strike cooldown timestamps clear with every new shift, fixing long previous-round lockouts. Guest strikes send a fresh hand pose and bounded swept contact segment instead of testing only a stale endpoint; host still validates range, motion and per-hand cooldown. Guest collision pose history updates with supervisor snapshots. First firing hit still reacts without damage, and existing fight/KO/counter rules remain intact. Reject arrival rate rises modestly initially and more after 45 seconds, including minutes 2–3, scaling with co-op and endless; the initial batch and belt speed are unchanged.
+
+Verified: 55 unit/relay tests, production build, both hands striking immediately after repeated solo restarts, two real browser peers with synthetic VR sweeps through the supervisor after room restart, remote opposite-side head/body coordinates and new bin capture. Physical Quest pairing still needs hardware testing. Temporary loopback servers are stopped after verification; no public/LAN host or tunnel is left running.
+
+Local HTTPS relay support: TLS_CERT and TLS_KEY optionally supply certificate files; HOST and PORT control listening. Certificates/private keys are kept outside this repository. Windows firewall setup requires separate local approval and is not part of publishing the game.

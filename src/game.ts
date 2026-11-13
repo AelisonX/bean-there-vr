@@ -38,7 +38,7 @@ export function insideBin(x:number,z:number) { return Math.abs(x-BIN.x)<BIN.half
 
 export function flow(elapsed:number,mode:'timed'|'endless',coop:boolean,speed:number){
  const late=mode==='endless'?Math.min(1,elapsed/360):Math.min(1,elapsed/180);const overtime=mode==='endless'?Math.min(1,Math.max(0,elapsed-360)/240):0;
- const team=coop?1.5:1;
- return {beltFactor:team*.935,interval:Math.max(.3,(mode==='endless'?.95-.45*late-.2*overtime:.95-.25*late))/team,
- badChance:Math.min(.88,(coop?.40:.32)+(mode==='endless'?.38:.12)*late+.10*overtime),greenInterval:Math.max(.13,.42/(1+speed*3))/team};
+ const team=coop?1.5:1;const mid=Math.min(1,Math.max(0,elapsed-45)/105);
+ return {beltFactor:team*.935,interval:Math.max(.28,(mode==='endless'?.95-.45*late-.2*overtime:.95-.25*late)-.09*mid)/team,
+ badChance:Math.min(.90,(coop?.42:.34)+(mode==='endless'?.38:.12)*late+.10*overtime+.07*mid),greenInterval:Math.max(.13,.42/(1+speed*3))/team};
 }

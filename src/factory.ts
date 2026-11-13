@@ -51,7 +51,7 @@ export class Supervisor {
   const clipboard=block(this.left,material('#815d3c'),[-.04,-.32,.14],[.26,.35,.035]);clipboard.rotation.x=-.2;block(clipboard,white,[0,0,.025],[.21,.28,.01]);block(clipboard,dark,[0,.16,.035],[.09,.03,.018]);for(let i=0;i<4;i++)block(clipboard,dark,[0,.07-i*.04,.035],[.14,.008,.005]);
  }
  private zones(){this.root.updateWorldMatrix(true,true);const result:T.Sphere[]=[];for(const arm of [this.left,this.right])for(const y of [-.08,-.22,-.35])result.push(new T.Sphere(arm.localToWorld(new T.Vector3(arm===this.left?-.04:.04,y,0)),.12));return result;}
- private capturePose(){this.root.updateWorldMatrix(true,true);this.previousMatrix.copy(this.root.matrixWorld);this.previousZones=this.zones();}
+ capturePose(){this.root.updateWorldMatrix(true,true);this.previousMatrix.copy(this.root.matrixWorld);this.previousZones=this.zones();}
  hit(a:T.Vector3,b:T.Vector3,radius=.03){
   if(this.knockedOut)return false;const center=this.root.getWorldPosition(new T.Vector3()).add(new T.Vector3(0,1,0));if(new T.Line3(a,b).closestPointToPoint(center,true,new T.Vector3()).distanceTo(center)>1.8+radius)return false;this.root.updateWorldMatrix(true,true);
   for(const matrix of [this.root.matrixWorld,this.previousMatrix]){const inverse=matrix.clone().invert(),start=a.clone().applyMatrix4(inverse),end=b.clone().applyMatrix4(inverse);
