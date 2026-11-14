@@ -41,7 +41,7 @@ export class Supervisor {
  constructor(scene:T.Scene,private speak:(lose:boolean)=>void){
   this.root.name='supervisor';scene.add(this.root);this.root.position.set(-1.95,0,-.72);
   const skin=material('#dab38c'),vest=material('#e9902e'),shirt=material('#e5d9b5'),pants=material('#344c4b'),dark=material('#263a36'),white=material('#f0efda');
-  part(this.root,sphere,vest,[0,.96,0],[.36,.44,.25]);block(this.root,shirt,[0,1.05,.235],[.12,.5,.04]);for(const x of [-.2,.2])block(this.root,white,[x,1.04,.23],[.035,.55,.025]);
+  part(this.root,sphere,vest,[0,.96,0],[.36,.44,.25]);
   for(const x of [-.14,.14]){block(this.root,pants,[x,.4,0],[.2,.64,.2]);block(this.root,dark,[x,.1,.065],[.22,.16,.34]);}
   this.head.position.set(0,1.52,0);this.root.add(this.head);part(this.head,sphere,skin,[0,0,0],[.23,.26,.215]);
   part(this.head,sphere,skin,[0,-.04,.21],[.06,.07,.055]);
