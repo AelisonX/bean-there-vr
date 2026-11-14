@@ -14,3 +14,5 @@ services:
         value: 0.0.0.0
       - key: NODE_VERSION
         value: 24
+      - key: ALLOWED_ORIGINS
+        value: https://aelisonx.github.io,https://bean-there-vr.onrender.com

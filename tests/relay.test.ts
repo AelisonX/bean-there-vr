@@ -1,11 +1,11 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {WebSocket} from 'ws';import {createRelay} from '../server/relay.mjs';
 test('WebRTC rooms exchange signaling but reject gameplay through the room service',async()=>{
- const app=createRelay({port:0});const address:any=await app.listen();const url=`ws://127.0.0.1:${address.port}/multiplayer`;const h=await client(url),g=await client(url),third=await client(url);
+ let issued=0;const app=createRelay({port:0,iceProvider:async()=>{await new Promise(r=>setTimeout(r,10));return [{urls:['turn:relay.test'],username:'user-'+(++issued),credential:'temporary'}];}});const address:any=await app.listen();const url=`ws://127.0.0.1:${address.port}/multiplayer`;const h=await client(url),g=await client(url),third=await client(url);
  try{
   const hosted=await h.request('host',{name:'RTC test',password:'private',transport:'rtc'});assert.equal(hosted.data.transport,'rtc');assert.ok(hosted.data.iceServers.length);
   assert.ok((await g.request('join',{name:'RTC test',password:'wrong',transport:'rtc'})).error);
   assert.ok((await g.request('join',{name:'RTC test',password:'private'})).error);
-  const joined=await g.request('join',{name:'RTC test',password:'private',transport:'rtc'});const pair=joined.data.pair;assert.equal(joined.data.slot,1);
+  const joined=await g.request('join',{name:'RTC test',password:'private',transport:'rtc'});const pair=joined.data.pair;assert.equal(joined.data.slot,1);assert.notEqual(hosted.data.iceServers[0].username,joined.data.iceServers[0].username);
   assert.ok((await third.request('join',{name:'RTC test',password:'private',transport:'rtc'})).error);
   const signal=g.receive(m=>m.type==='signal');h.send('signal',{pair,data:{description:{type:'offer',sdp:'test-offer'}}});assert.equal((await signal).data.description.sdp,'test-offer');
   const answer=h.receive(m=>m.type==='signal');g.send('signal',{pair,data:{description:{type:'answer',sdp:'test-answer'}}});assert.equal((await answer).data.description.sdp,'test-answer');

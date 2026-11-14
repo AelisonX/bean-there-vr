@@ -5,7 +5,7 @@ export class PeerLink {
  onPacket:(p:PeerPacket)=>void=()=>{};onReady:()=>void=()=>{};onLost:()=>void=()=>{};
  private candidates:RTCIceCandidateInit[]=[];private next=0;private frames=new Map<number,{parts:string[],count:number,at:number}>();
  constructor(host:boolean,iceServers:RTCIceServer[],private signal:(data:any)=>void){
-  this.pc=new RTCPeerConnection({iceServers});
+  this.pc=new RTCPeerConnection({iceServers,iceTransportPolicy:new URLSearchParams(location.search).get('relay')==='1'?'relay':'all'});
   this.pc.onicecandidate=e=>{if(e.candidate&&!this.closed)this.signal({candidate:e.candidate.toJSON()});};
   this.pc.ondatachannel=e=>this.bind(e.channel);
   this.pc.onconnectionstatechange=()=>{if(['failed','closed'].includes(this.pc.connectionState)&&!this.closed)this.onLost();};
