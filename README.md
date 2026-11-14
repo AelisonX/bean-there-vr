@@ -1,3 +1,9 @@
+# v0.13.1 — playtest adjustments (local, unpublished)
+
+Desktop robot head is 1.65 m high with a matching raised torso/shoulder, while its glove and picking plane stay at 1.08 m. Networked desktop poses use the robot head instead of the spectator camera. Sorting mistakes follow the last player to handle/push/release an item; untouched escaped rejects use their belt side. The supervisor no longer alternates seats by mistake count. Thrown objects draw him toward their thrower even outside a fight; an already launched counter keeps its committed target. Existing five-mistake visits and combat rules remain.
+
+Belt mice compensate for conveyor drift, with a modest capped scurry increase and upstream targets near the downstream end. Unhandled mice remain protected from falling off. Verified with 59 unit/service checks, browser height/targeting regressions and singleplayer smoke checks. Physical Quest testing of these adjustments remains pending. Hosting is stopped.
+
 # v0.13 — browser-to-browser co-op (local, unpublished)
 
 Gameplay now travels through WebRTC data channels between the two browsers. The host browser simulates the world and arbitrates exclusive grabs. Reliable messages handle grabs, releases, combat and round controls; replaceable movement/snapshot frames use an unordered channel with no retransmission. Immediate local grabs and release prediction, ownership revisions and recent position history prevent delayed snapshots from undoing a pickup or re-grabbing a thrown item. Fresh hand poses accompany reliable grabs and combat actions. No camera or microphone permission is used.
