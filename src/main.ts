@@ -151,6 +151,7 @@ function updateCritters(dt:number){if(shift.phase!=='running')return;for(const b
  for(const [i,leg] of b.mesh.userData.legs.entries())leg.rotation.x=Math.sin(phase+i*Math.PI)* (b.state==='held'?.42:.13);
  if(b.state==='held'&&(!coop.running||b.mesh.userData.owner===coop.slot)){b.mesh.rotation.z=Math.sin(phase*.7)*.24;b.mesh.rotation.x=Math.cos(phase*.9)*.15;if(b.mesh.userData.holdBase)b.mesh.position.copy(b.mesh.userData.holdBase).add(new T.Vector3(Math.sin(phase)*.006,Math.cos(phase*.8)*.004,Math.cos(phase*.5)*.004));}
  if(b.state==='belt'&&(!coop.running||coop.host)){
+ b.mesh.rotation.set(0,b.mesh.rotation.y,0);b.spin.set(0,0,0);
  const candidates=beans.filter(other=>!other.critter&&other.state==='belt'&&(b.mesh.position.x<.75||other.mesh.position.x<.55));
  let target=candidates.find(other=>other.mesh.userData.netId===b.mesh.userData.beanTarget);
  if(!target||shift.elapsed>=(b.mesh.userData.retargetAt??0)){
@@ -162,7 +163,7 @@ function updateCritters(dt:number){if(shift.phase!=='running')return;for(const b
  if(Math.hypot(movement.x,movement.z)>.01)b.mesh.rotation.y=Math.atan2(movement.z,-movement.x);
  if(!b.mesh.userData.playerTouched)keepMouseOnBelt(b.mesh.position);
 }
- if(b.state==='escaping'&&(!coop.running||coop.host)){b.mesh.position.x+=dt*1.1;b.mesh.position.z+=(b.mesh.position.z<-.72?-.4:.4)*dt;b.mesh.rotation.y=-Math.PI/2;b.mesh.position.y=.055;if(shift.elapsed>b.mesh.userData.escapeUntil)b.state='done';}
+ if(b.state==='escaping'&&(!coop.running||coop.host)){b.mesh.rotation.set(0,-Math.PI/2,0);b.spin.set(0,0,0);b.mesh.position.x+=dt*1.1;b.mesh.position.z+=(b.mesh.position.z<-.72?-.4:.4)*dt;b.mesh.position.y=.055;if(shift.elapsed>b.mesh.userData.escapeUntil)b.state='done';}
  if(shift.elapsed>b.mesh.userData.nextVoice){voice('mouse');b.mesh.userData.nextVoice=shift.elapsed+(b.state==='held'?1.2:4+Math.random()*4);}
 }}
 
