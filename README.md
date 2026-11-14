@@ -1,3 +1,15 @@
+# v0.13 — browser-to-browser co-op (local, unpublished)
+
+Gameplay now travels through WebRTC data channels between the two browsers. The host browser simulates the world and arbitrates exclusive grabs. Reliable messages handle grabs, releases, combat and round controls; replaceable movement/snapshot frames use an unordered channel with no retransmission. Immediate local grabs and release prediction, ownership revisions and recent position history prevent delayed snapshots from undoing a pickup or re-grabbing a thrown item. Fresh hand poses accompany reliable grabs and combat actions. No camera or microphone permission is used.
+
+The Node service handles only room browsing/passwords and connection signaling for new WebRTC rooms. Legacy WebSocket rooms remain compatible with old builds. A connected match can continue if the signaling service disconnects; a lost player connection pauses the game and requires leaving/rejoining. There is no host migration.
+
+For itch.io, build with `VITE_SIGNALING_URL=wss://your-room-service/multiplayer` (or set the endpoint in the game). HTTPS is required on Quest. The service must be running for new rooms. Configure `ALLOWED_ORIGINS` for the actual game origin. Default STUN helps peers discover a direct route. Restricted networks may require TURN: configure `TURN_URLS` and either `TURN_SECRET` for short-lived HMAC credentials, or `TURN_USERNAME`/`TURN_CREDENTIAL` for a provider using static credentials. Keep secrets in the service environment, never in the static game. No TURN service is provisioned yet; relay connectivity and Quest hardware remain untested. Connection diagnostics expose direct/relay route and measured round-trip time through `window.beanThere.coop`.
+
+Local automated coverage includes two real browser peers connecting directly, all gameplay bypassing the signaling WebSocket, continuing after signaling loss, and held/quick-release grabs with an injected 400 ms round-trip delay. This is not a substitute for testing two physical Quests over different networks. Render remains suspended; no public deployment is included in this update.
+
+---
+
 # Bean There VR v0.12
 
 A very normal job. Now in three dimensions.
@@ -45,7 +57,7 @@ Co-op belt speed is 1.5x solo; the mixed spawn interval is divided by 1.5, start
 
 ### Local implementation (setup deferred)
 
-The browser host simulates the shared world; a small Node/WebSocket relay handles room/password checks, exclusive item ownership, player poses, high-fives and disconnects. The guest receives world snapshots and sends input. This avoids running two independent physics/scoring loops. Shared item IDs and ownership prevent duplicate grabs/scoring. A joining VR player remains physically reach-limited; mouse controls remain the desktop fallback. Claims include a fresh hand pose to avoid fast-grab pose latency.
+The browser host simulates the shared world and handles exclusive item ownership, player poses and high-fives; a small Node service handles rooms and WebRTC signaling. The guest receives world snapshots and sends input. This avoids running two independent physics/scoring loops. Shared item IDs and ownership prevent duplicate grabs/scoring. A joining VR player remains physically reach-limited; mouse controls remain the desktop fallback. Claims include a fresh hand pose to avoid fast-grab pose latency.
 
 No host migration: host disconnect closes the room, guest disconnect pauses it, and resuming requires a second player. Rooms and passwords are memory-only; passwords are salted/hashed and never included in room listings/snapshots. Payload/rate/room limits and heartbeat cleanup are included. This is for internal testing, not competitive anti-cheat or production-scale matchmaking.
 

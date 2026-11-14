@@ -1,4 +1,18 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {WebSocket} from 'ws';import {createRelay} from '../server/relay.mjs';
+test('WebRTC rooms exchange signaling but reject gameplay through the room service',async()=>{
+ const app=createRelay({port:0});const address:any=await app.listen();const url=`ws://127.0.0.1:${address.port}/multiplayer`;const h=await client(url),g=await client(url),third=await client(url);
+ try{
+  const hosted=await h.request('host',{name:'RTC test',password:'private',transport:'rtc'});assert.equal(hosted.data.transport,'rtc');assert.ok(hosted.data.iceServers.length);
+  assert.ok((await g.request('join',{name:'RTC test',password:'wrong',transport:'rtc'})).error);
+  assert.ok((await g.request('join',{name:'RTC test',password:'private'})).error);
+  const joined=await g.request('join',{name:'RTC test',password:'private',transport:'rtc'});const pair=joined.data.pair;assert.equal(joined.data.slot,1);
+  assert.ok((await third.request('join',{name:'RTC test',password:'private',transport:'rtc'})).error);
+  const signal=g.receive(m=>m.type==='signal');h.send('signal',{pair,data:{description:{type:'offer',sdp:'test-offer'}}});assert.equal((await signal).data.description.sdp,'test-offer');
+  const answer=h.receive(m=>m.type==='signal');g.send('signal',{pair,data:{description:{type:'answer',sdp:'test-answer'}}});assert.equal((await answer).data.description.sdp,'test-answer');
+  for(const type of ['claim','start','snapshot','release','action'])assert.match((await g.request(type,{id:1})).error,/browser-to-browser/);
+  assert.equal(app.rooms.get('rtc test').items.size,0);assert.equal(app.rooms.get('rtc test').owners.size,0);
+ }finally{h.ws.terminate();g.ws.terminate();third.ws.terminate();await app.close();}
+});
 async function client(url:string){const ws=new WebSocket(url);await new Promise(r=>ws.once('open',r));let id=0,epoch=0;const queue:any[]=[];const waits:Array<{fn:(m:any)=>boolean,resolve:(m:any)=>void}>=[];ws.on('message',raw=>{const m=JSON.parse(raw.toString());if(m.type==='start')epoch=m.epoch;const i=waits.findIndex(w=>w.fn(m));if(i>=0)waits.splice(i,1)[0].resolve(m);else queue.push(m);});const receive=(fn:(m:any)=>boolean)=>{const i=queue.findIndex(fn);if(i>=0)return Promise.resolve(queue.splice(i,1)[0]);return new Promise<any>((resolve,reject)=>{const w={fn,resolve:(m:any)=>{clearTimeout(timer);resolve(m);}};const timer=setTimeout(()=>{const i=waits.indexOf(w);if(i>=0)waits.splice(i,1);reject(Error('Missing relay message'));},2000);waits.push(w);});};const send=(type:string,data:any={})=>ws.send(JSON.stringify({type,epoch,...data}));return {ws,send,receive,request:(type:string,data:any={})=>{const rid=++id;const p=receive(m=>m.type==='reply'&&m.rid===rid);send(type,{...data,rid});return p;}};}
 test('two-player rooms, passwords, browsing, host authority, ownership and disconnect cleanup',async()=>{const app=createRelay({port:0});const address:any=await app.listen();const url=`ws://127.0.0.1:${address.port}/multiplayer`;const h=await client(url),g=await client(url),third=await client(url);try{
  assert.equal((await h.request('host',{name:'Bean team',password:'test-only'})).data.slot,0);const listing=await g.request('list');assert.deepEqual(listing.data.rooms,[{name:'Bean team',password:true,players:1}]);assert.ok((await g.request('join',{name:'Bean team',password:'wrong'})).error);assert.equal((await g.request('join',{name:'bean TEAM',password:'test-only'})).data.slot,1);assert.ok((await third.request('join',{name:'Bean team',password:'test-only'})).error);assert.deepEqual((await third.request('list')).data.rooms,[]);assert.ok((await g.request('start')).error);
