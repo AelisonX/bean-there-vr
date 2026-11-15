@@ -1,0 +1,3 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {collideBeltSides} from '../src/belt-rails';
+test('side rails retain pushed beans and mice at both edges, including fast sweeps',()=>{for(const radius of [.018,.05])for(const sign of [-1,1]){const old={x:0,y:.98,z:-.72},p={x:0,y:.98,z:-.72+sign*2},v={x:0,y:0,z:sign*8};collideBeltSides(p,old,v,radius);assert.ok(p.z>=-1.04+radius&&p.z<=-.4-radius);assert.ok(v.z*sign<0);}});
+test('raised throws and items leaving the conveyor end remain unobstructed',()=>{for(const [x,y] of [[0,1.3],[1.6,.98]]){const old={x,y,z:-.72},p={x,y,z:0},v={x:1,y:0,z:2};collideBeltSides(p,old,v);assert.equal(p.z,0);assert.equal(v.z,2);}});

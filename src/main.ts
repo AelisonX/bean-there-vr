@@ -1,3 +1,4 @@
+import {collideBeltSides} from './belt-rails';
 import {Provocation} from './provocation';
 import {HitFeedback} from './hit-feedback';
 import {desktopHandTarget} from './desktop-aim';
@@ -242,11 +243,11 @@ let last=0,lastHud='';renderer.setAnimationLoop(time=>{const dt=Math.min((time-l
  resolveBeltCrowding(dt);const steps=Math.ceil(dt/.004);for(let step=0;step<steps;step++){const h=dt/steps;
  for(const b of beans){if(shift.phase!=='running')break;const p=b.mesh.position;
  if(b.state==='belt'){
- p.x+=(shift.speed*flow(shift.elapsed,shift.mode,coop.running,shift.speed).beltFactor+b.velocity.x)*h;p.z+=b.velocity.z*h;b.velocity.multiplyScalar(Math.exp(-5*h));
- if(b.critter&&!b.mesh.userData.playerTouched){keepMouseOnBelt(p);b.velocity.set(0,0,0);}
+ const beltPrevious=p.clone();p.x+=(shift.speed*flow(shift.elapsed,shift.mode,coop.running,shift.speed).beltFactor+b.velocity.x)*h;p.z+=b.velocity.z*h;b.velocity.multiplyScalar(Math.exp(-5*h));
+ collideBeltSides(p,beltPrevious,b.velocity,b.critter?.05:.018);if(b.critter&&!b.mesh.userData.playerTouched){keepMouseOnBelt(p);b.velocity.set(0,0,0);}
  if(p.x>1.48)finish(b,false);else if(p.x< -1.4||p.z< -1.04||p.z>-.4)b.state='air';
  }else if(b.state==='air'){
- const previous=p.clone(),previousQuaternion=b.mesh.quaternion.clone();if(binAssist){assistBin(p,b.velocity,h);if(coop.running){const mp=mirrorPoint(p),mv=mirrorVector(b.velocity);assistBin(mp,mv,h);b.velocity.copy(mirrorVector(mv));}}b.velocity.y-=9.8*h;p.addScaledVector(b.velocity,h);b.mesh.rotation.x+=b.spin.x*h;b.mesh.rotation.y+=b.spin.y*h;b.mesh.rotation.z+=b.spin.z*h;
+ const previous=p.clone(),previousQuaternion=b.mesh.quaternion.clone();if(binAssist){assistBin(p,b.velocity,h);if(coop.running){const mp=mirrorPoint(p),mv=mirrorVector(b.velocity);assistBin(mp,mv,h);b.velocity.copy(mirrorVector(mv));}}b.velocity.y-=9.8*h;p.addScaledVector(b.velocity,h);b.mesh.rotation.x+=b.spin.x*h;b.mesh.rotation.y+=b.spin.y*h;b.mesh.rotation.z+=b.spin.z*h;collideBeltSides(p,previous,b.velocity,b.critter?.05:.018);
  if(b.mesh.userData.supervisorThrown){const seat=b.mesh.userData.targetSeat,aim=playerHead(seat);if(segmentDistance(aim,station.localToWorld(previous.clone()),station.localToWorld(p.clone()))<.16){notifyPlayerHit(seat);finish(b,false);continue;}}else if(b.velocity.length()>.3&&supervisor.hit(station.localToWorld(previous.clone()),station.localToWorld(p.clone()),.025)){objectHitSupervisor(b);continue;}
  const impacts=collideBin({position:p,previousPosition:previous,previousQuaternion,quaternion:b.mesh.quaternion,scale:b.mesh.scale,velocity:b.velocity,spin:b.spin,points:b.mesh.geometry.userData.collisionPoints??[new T.Vector3()],radius:b.critter?.055:.014*Math.max(b.mesh.scale.y,b.mesh.scale.z)},h);
  if(impacts&&shift.elapsed-lastBinSound>.08){voice('object');lastBinSound=shift.elapsed;}
