@@ -5,6 +5,14 @@ const cube=new T.BoxGeometry(1,1,1),sphere=new T.SphereGeometry(1,12,8);
 const material=(color:T.ColorRepresentation)=>new T.MeshStandardMaterial({color,roughness:.85});
 function part(parent:T.Object3D,geo:T.BufferGeometry,m:T.Material,p:number[],scale:number[]){const mesh=new T.Mesh(geo,m);mesh.position.fromArray(p);mesh.scale.fromArray(scale);parent.add(mesh);return mesh;}
 function block(parent:T.Object3D,m:T.Material,p:number[],scale:number[]){return part(parent,cube,m,p,scale);}
+function highVisVest(){
+ const size=256,data=new Uint8Array(size*size*4);
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){const u=x/(size-1),v=y/(size-1),stripe=v>.18&&v<.83&&[.25,.5,.75].some(center=>Math.abs(u-center)<.035),i=(y*size+x)*4;data.set(stripe?[240,239,218,255]:[233,144,46,255],i);}
+ const map=new T.DataTexture(data,size,size);map.colorSpace=T.SRGBColorSpace;map.needsUpdate=true;map.magFilter=map.minFilter=T.LinearFilter;
+ const geometry=sphere.clone(),positions=geometry.attributes.position,uv=geometry.attributes.uv;
+ for(let i=0;i<positions.count;i++){const front=positions.getZ(i)>=0;uv.setXY(i,front?.5+positions.getX(i)*.5:.02,front?.5+positions.getY(i)*.5:.02);}
+ return {geometry,material:new T.MeshStandardMaterial({map,roughness:.85})};
+}
 export const PARTNER_BAY={minX:-.7,maxX:.7,minZ:-2.25,maxZ:-1.25};
 export function buildFactory(scene:T.Scene){
  const group=new T.Group();group.name='factory-dressing';scene.add(group);
@@ -41,14 +49,15 @@ export class Supervisor {
  constructor(scene:T.Scene,private speak:(lose:boolean)=>void){
   this.root.name='supervisor';scene.add(this.root);this.root.position.set(-1.95,0,-.72);
   const skin=material('#dab38c'),vest=material('#e9902e'),shirt=material('#e5d9b5'),pants=material('#344c4b'),dark=material('#263a36'),white=material('#f0efda');
-  part(this.root,sphere,vest,[0,.96,0],[.36,.44,.25]);
+  const hiVis=highVisVest();part(this.root,hiVis.geometry,hiVis.material,[0,.96,0],[.36,.44,.25]).name='high-vis-vest';
   for(const x of [-.14,.14]){block(this.root,pants,[x,.4,0],[.2,.64,.2]);block(this.root,dark,[x,.1,.065],[.22,.16,.34]);}
   this.head.position.set(0,1.52,0);this.root.add(this.head);part(this.head,sphere,skin,[0,0,0],[.23,.26,.215]);
   part(this.head,sphere,skin,[0,-.04,.21],[.06,.07,.055]);
   for(const x of [-.075,.075]){block(this.head,dark,[x,.015,.206],[.035,.035,.025]);const brow=block(this.head,dark,[x,.077,.196],[.095,.025,.03]);brow.rotation.z=x>0?.28:-.28;part(this.head,sphere,skin,[Math.sign(x)*.23,-.015,0],[.04,.065,.04]);}
   this.jaw=part(this.head,sphere,dark,[0,-.11,.195],[.06,.015,.016]);
   for(const [arm,side] of [[this.left,-1],[this.right,1]] as const){arm.position.set(side*.35,1.24,0);this.root.add(arm);block(arm,shirt,[side*.04,-.15,0],[.15,.31,.16]);part(arm,sphere,skin,[side*.04,-.35,0],[.085,.1,.08]);}
-  const clipboard=block(this.left,material('#815d3c'),[-.04,-.32,.14],[.26,.35,.035]);clipboard.rotation.x=-.2;block(clipboard,white,[0,0,.025],[.21,.28,.01]);block(clipboard,dark,[0,.16,.035],[.09,.03,.018]);for(let i=0;i<4;i++)block(clipboard,dark,[0,.07-i*.04,.035],[.14,.008,.005]);
+  const clipboard=new T.Group();clipboard.name='clipboard-grip';clipboard.position.set(-.04,-.35,.025);clipboard.rotation.set(-.12,0,-.12);this.left.add(clipboard);
+  block(clipboard,material('#815d3c'),[-.07,-.11,.045],[.25,.33,.018]);block(clipboard,white,[-.07,-.11,.056],[.215,.29,.002]);block(clipboard,dark,[-.07,.045,.062],[.08,.025,.009]);for(let i=0;i<4;i++)block(clipboard,dark,[-.07,-.055-i*.035,.058],[.13,.003,.001]);
  }
  private zones(){this.root.updateWorldMatrix(true,true);const result:T.Sphere[]=[];for(const arm of [this.left,this.right])for(const y of [-.08,-.22,-.35])result.push(new T.Sphere(arm.localToWorld(new T.Vector3(arm===this.left?-.04:.04,y,0)),.12));return result;}
  capturePose(){this.root.updateWorldMatrix(true,true);this.previousMatrix.copy(this.root.matrixWorld);this.previousZones=this.zones();}
