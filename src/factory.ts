@@ -56,7 +56,7 @@ export class Supervisor {
   for(const x of [-.075,.075]){block(this.head,dark,[x,.015,.206],[.035,.035,.025]);const brow=block(this.head,dark,[x,.077,.196],[.095,.025,.03]);brow.rotation.z=x>0?.28:-.28;part(this.head,sphere,skin,[Math.sign(x)*.23,-.015,0],[.04,.065,.04]);}
   this.jaw=part(this.head,sphere,dark,[0,-.11,.195],[.06,.015,.016]);
   for(const [arm,side] of [[this.left,-1],[this.right,1]] as const){arm.position.set(side*.35,1.24,0);this.root.add(arm);block(arm,shirt,[side*.04,-.15,0],[.15,.31,.16]);part(arm,sphere,skin,[side*.04,-.35,0],[.085,.1,.08]);}
-  const clipboard=new T.Group();clipboard.name='clipboard-grip';clipboard.position.set(-.04,-.35,.025);clipboard.rotation.set(.85,-.15,-.22);this.left.add(clipboard);
+  const clipboard=new T.Group();clipboard.name='clipboard-grip';clipboard.position.set(.025,-.35,.025);clipboard.rotation.set(.85,-.15,-.22);this.left.add(clipboard);
   // Lower side rests in his palm; the writing face tilts upward toward him.
   block(clipboard,material('#815d3c'),[-.07,.10,.045],[.25,.33,.018]);block(clipboard,white,[-.07,.10,.034],[.215,.29,.002]);block(clipboard,dark,[-.07,.255,.045],[.08,.025,.025]);for(let i=0;i<4;i++)block(clipboard,dark,[-.07,.155-i*.035,.032],[.13,.003,.001]);
  }
