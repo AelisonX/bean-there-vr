@@ -9,7 +9,7 @@ export class Combat {
   if(this.hits===1)return true;
   if(kind==='punch'){this.punches++;this.damage+=Math.min(5,1.5+Math.max(0,speed)*.75);}
   else this.damage+=Math.min(.7,Math.max(0,speed)*.15);
-  if(this.hits===2||this.settled){this.avoided=0;this.settled=false;this.firstHit=this.time;this.attackAt=this.time+1.1;this.fighting=true;}
+  if(this.hits===2||this.settled||!this.fighting&&this.hits>1){this.avoided=0;this.settled=false;this.firstHit=this.time;this.attackAt=this.time+1.1;this.fighting=true;}
   if(kind==='punch'&&this.punches>=3&&this.damage>=12){if(this.fighting||this.attackFlying)this.pendingKo=true;else this.ko=true;}
   return true;
  }

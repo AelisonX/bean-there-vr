@@ -1,4 +1,14 @@
-# v0.13.1 — playtest adjustments (local, unpublished)
+# v0.14 LOCAL — unpublished playtest
+
+Supervisor punches now trigger a brief impact/ringing sound, a subtle peripheral red hit marker and controller vibration for the player actually hit. No camera shake or forced VR camera fall is added. Targeted hit counters synchronize through world snapshots without replaying the marker or showing it to the other player.
+
+Tracked VR gloves push loose beans and mice while carrying items; carried items also have a swept contact check. Held items are excluded from loose-item contacts. Mouse protection ends when physically pushed, as before.
+
+After firing, sorting mistakes do not summon the supervisor. Actual player-thrown bean impacts count globally across the two players: hits one and two queue a bean thrown back at that hitter; the third resets the cycle and approaches the third hitter. A thrown mouse impact immediately resets the cycle and approaches its thrower. Missed throws do not count. Knockout disables retaliation. A committed punch finishes before a queued target change. Bean retaliation gives hit feedback without ending the shift or adding scoring penalties; the supervisor's punch still ends the shift. Further hand strikes can restart fighting after a provoked approach.
+
+Verified: 66 unit/service checks, synthetic loaded-glove bean/mouse contacts, post-firing impact cycle, actual returned-bean contact, hit-marker fade, two-browser local WebRTC targeting/feedback, and production build. Physical Quest playtesting pending. Public GitHub/itch.io/Render versions remain unchanged.
+
+# v0.13.1 — playtest adjustments
 
 Desktop robot head is 1.65 m high with a matching raised torso/shoulder, while its glove and picking plane stay at 1.08 m. Networked desktop poses use the robot head instead of the spectator camera. Sorting mistakes follow the last player to handle/push/release an item; untouched escaped rejects use their belt side. The supervisor no longer alternates seats by mistake count. Thrown objects draw him toward their thrower even outside a fight; an already launched counter keeps its committed target. Existing five-mistake visits and combat rules remain.
 

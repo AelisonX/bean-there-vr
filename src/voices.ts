@@ -1,6 +1,7 @@
-export type Voice='mouse'|'grab'|'throw'|'grumble'|'lose'|'slap'|'punch'|'object';
+export type Voice='mouse'|'grab'|'throw'|'grumble'|'lose'|'slap'|'punch'|'object'|'playerhit';
 // Small synthesized voices, deliberately unintelligible; no recordings or speech service.
 export function playVoice(ctx:AudioContext,output:AudioNode,kind:Voice) {
+ if(kind==='playerhit'){playVoice(ctx,output,'punch');const t=ctx.currentTime,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.setValueAtTime(430,t);osc.frequency.exponentialRampToValueAtTime(180,t+.28);gain.gain.setValueAtTime(.045,t);gain.gain.exponentialRampToValueAtTime(.0001,t+.3);osc.connect(gain).connect(output);osc.start(t);osc.stop(t+.31);osc.onended=()=>{osc.disconnect();gain.disconnect();};return;}
  if(kind==='slap'||kind==='punch'||kind==='object'){
   const t=ctx.currentTime,duration=kind==='slap'?.13:.22;
   if(kind==='punch'){const thud=ctx.createOscillator(),envelope=ctx.createGain();thud.type='triangle';thud.frequency.setValueAtTime(210,t);thud.frequency.exponentialRampToValueAtTime(65,t+.18);envelope.gain.setValueAtTime(.24,t);envelope.gain.exponentialRampToValueAtTime(.0001,t+.23);thud.connect(envelope).connect(output);thud.start(t);thud.stop(t+.24);thud.onended=()=>{thud.disconnect();envelope.disconnect();};}
